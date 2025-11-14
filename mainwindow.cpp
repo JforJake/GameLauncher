@@ -1,0 +1,154 @@
+#include "mainwindow.h"
+#include "./ui_mainwindow.h"
+#include <QMouseEvent>
+#include <QScreen>
+#include <QGuiApplication>
+#include <QApplication>
+#include <iostream>
+
+using namespace std;
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    screen = QGuiApplication::primaryScreen();
+    geometry = screen->availableGeometry();
+
+    screenWidth = geometry.width();
+    screenHeight = geometry.height();
+    windowWidth = 480;
+    windowHeight = screenHeight;
+
+    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    resize(windowWidth, windowHeight);
+    move(screenWidth - (windowWidth * 4), 0);
+    m_anim = new QPropertyAnimation(this, "pos", this);
+    m_anim->setDuration(180);
+    m_anim->setEasingCurve(QEasingCurve::OutCubic);
+
+    ui->setupUi(this);
+
+    connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *e) {
+    if (e->button() == Qt::LeftButton) {
+        m_dragging = true;
+        m_dragPos = e->globalPosition().toPoint() - frameGeometry().topLeft();
+        e->accept();
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *e) {
+    if (m_dragging) {
+        move(e->globalPosition().toPoint() - m_dragPos);
+        e->accept();
+    }
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *e) {
+    if (e->button() == Qt::LeftButton && m_dragging) {
+        m_dragging = false;
+        snapToEdge();
+        e->accept();
+    }
+}
+
+void MainWindow::snapToEdge() {
+    const int snapDistance = screenWidth / 5; // pixels to trigger snap
+    QRect winGeom = frameGeometry();
+
+    // Use the screen the window is currently on
+    cout << "test1" << endl;
+    screen = QGuiApplication::screenAt(winGeom.center());
+    if (!screen) screen = QGuiApplication::primaryScreen();
+
+    cout << "test2" << endl;
+    int x = winGeom.x();
+    int y = winGeom.y();
+    int w = winGeom.width();
+
+    int previousScreenSide = screenSide;
+    screenSide = 0
+
+    // Snap left
+    cout << "test5" << endl;
+    if (screenSide == 0 && abs(x - geometry.x()) <= snapDistance) {
+        m_anim->stop();
+        m_anim->setStartValue(pos());
+        m_anim->setEndValue(QPoint(geometry.x(), 0));
+        m_anim->start();
+        screenSide = 3;
+        return;
+    }
+
+    // Snap right
+    cout << "test6" << endl;
+    int right = x + w;
+    int availRight = geometry.x() + geometry.width();
+    if (screenSide == 0 && abs(availRight - right) <= snapDistance) {
+        m_anim->stop();
+        m_anim->setStartValue(pos());
+        m_anim->setEndValue(QPoint(availRight - w, 0));
+        m_anim->start();
+        screenSide = 1;
+        return;
+    }
+
+    // Snap top
+    int availBottom = geometry.y() + geometry.height();
+    int bottom = y + winGeom.height();
+
+    cout << "test3" << endl;
+    if (screenSide == 0 && abs(y - geometry.y()) <= snapDistance) {
+        m_anim->stop();
+        m_anim->setStartValue(pos());
+        m_anim->setEndValue(QPoint(x, geometry.y()));
+        m_anim->start();
+        screenSide = 2; // assign whatever number you're using
+        return;
+    }
+
+    cout << "test4" << endl;
+    // Snap bottom
+    if (screenSide == 0 && abs(availBottom - bottom) <= snapDistance) {
+        m_anim->stop();
+        m_anim->setStartValue(pos());
+        m_anim->setEndValue(QPoint(x, availBottom - winGeom.height()));
+        m_anim->start();
+        screenSide = 4;
+        return;
+    }
+
+    cout << "test7" << endl;
+    int newX, newY;
+    if (screenSide == 1 || screenSide == 3) {
+        cout << "Snap to side: " << screenSide << endl;
+        newX = qBound(geometry.x(), x, availRight - w);
+        newY = geometry.y();
+    } else if (screenSide == 2 || screenSide == 4) {
+        cout << "Snap to side: " << screenSide << endl;
+        //newX = avail.x();
+        //newY = qBound(avail.y(), y, availBottom - winGeom.height());
+    } else {
+        cout << "Snap to previous side: " << previousScreenSide << endl;
+        move(x, y);
+        return;
+    }
+
+    cout << "test8" << endl;
+    if ((newX != x || newY != y) && (screenSide == 1 || screenSide == 3)){
+        cout << "Moving to x = " << newX << " y = " << newY << endl;
+        move(newX, newY);
+    }
+}
+
+void MainWindow::onExitButtonClicked() {
+    QCoreApplication::quit();
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
