@@ -5,6 +5,9 @@
 #include <QMainWindow>
 #include <QPoint>
 #include <QPropertyAnimation>
+#include "steamLibrary.h"
+#include <QNetworkAccessManager>
+#include <QGridLayout>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -22,6 +25,7 @@ public:
 
 protected:
     void onExitButtonClicked();
+    void onGameButtonClicked();
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
@@ -39,5 +43,9 @@ private:
     int windowWidth;
     int windowHeight;
     int screenSide; // 0-3 in clockwise order starting from top
+    steamLibrary* library;
+    QNetworkAccessManager* manager;
+    void loadGameLibrary(QGridLayout* grid);
+
 };
-#endif // MAINWINDOW_H
+#endif

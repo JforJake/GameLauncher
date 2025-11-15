@@ -5,6 +5,11 @@
 #include <QGuiApplication>
 #include <QApplication>
 #include <iostream>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QGridLayout>
+
 
 using namespace std;
 
@@ -28,6 +33,15 @@ MainWindow::MainWindow(QWidget *parent)
     m_anim->setEasingCurve(QEasingCurve::OutCubic);
 
     ui->setupUi(this);
+    manager = new QNetworkAccessManager(this);
+
+
+    QWidget* scrollContent = ui->scrollArea->widget();
+    QGridLayout* grid = new QGridLayout(scrollContent);
+    grid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    grid->setSpacing(10);
+
+    loadGameLibrary(grid);
 
     connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
 }
@@ -70,7 +84,7 @@ void MainWindow::snapToEdge() {
     int w = winGeom.width();
 
     int previousScreenSide = screenSide;
-    screenSide = 0
+    screenSide = 0;
 
     // Snap left
     cout << "test5" << endl;
@@ -144,6 +158,21 @@ void MainWindow::snapToEdge() {
     }
 }
 
+void MainWindow::onGameButtonClicked()
+{
+    QPixmap pixmap = this->property("fullPixmap").value<QPixmap>();
+
+    if (!pixmap.isNull()) {
+        QGraphicsScene* scene = new QGraphicsScene();
+        scene->addPixmap(pixmap);
+        ui->CurrentGameLogo->setScene(scene);
+        ui->CurrentGameLogo->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
+    }
+
+    QString appId = this->property("appId").toString();
+    library->launchGame(appId.toStdString());
+}
+
 void MainWindow::onExitButtonClicked() {
     QCoreApplication::quit();
 }
@@ -151,4 +180,40 @@ void MainWindow::onExitButtonClicked() {
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete library;
+}
+
+void MainWindow::loadGameLibrary(QGridLayout* grid)
+{
+    library = new steamLibrary();
+    const std::vector<std::string>& appIds = library->getAppIds();
+    int row = 0, col = 0;
+    const int maxCols = 4;
+    for (size_t i = 0; i < appIds.size(); ++i) {
+        QPushButton* gameButton = new QPushButton(QString::fromStdString(appIds[i]));
+        gameButton->setProperty("appId", QString::fromStdString(appIds[i]));
+        QString url = QString("https://cdn.cloudflare.steamstatic.com/steam/apps/%1/library_600x900.jpg")
+                          .arg(QString::fromStdString(appIds[i]));
+        QNetworkReply* reply = manager->get(QNetworkRequest(url));
+        connect(reply, &QNetworkReply::finished, [reply, gameButton]() {
+            QPixmap pixmap;
+            pixmap.loadFromData(reply->readAll());
+            if (!pixmap.isNull()) {
+                QPixmap scaled = pixmap.scaledToWidth(88, Qt::SmoothTransformation);
+                gameButton->setFixedSize(scaled.size());
+                gameButton->setIcon(QIcon(scaled));
+                gameButton->setIconSize(scaled.size());
+                gameButton->setText("");
+                gameButton->setProperty("fullPixmap", pixmap);
+            }
+            reply->deleteLater();
+        });
+        connect(gameButton, &QPushButton::clicked, this, &MainWindow::onGameButtonClicked);
+        grid->addWidget(gameButton, row, col);
+        col++;
+        if (col >= maxCols) {
+            col = 0;
+            row++;
+        }
+    }
 }
