@@ -28,6 +28,7 @@ protected:
     void onExitButtonClicked();
     void onMinimizeButtonClicked();
     void onGameButtonClicked();
+    void onPlayButtonClicked();
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
@@ -37,6 +38,7 @@ private:
     QPoint m_dragPos;
     void snapToEdge();
     bool m_dragging = false;
+    QString appId;
     QPropertyAnimation *m_anim = nullptr;
     QScreen *screen;
     QRect geometry;

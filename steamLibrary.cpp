@@ -100,13 +100,12 @@ std::string steamLibrary::trim(const std::string& str) {
     return std::string{str.substr(begin, end - begin + 1)};
 }
 
-void steamLibrary::launchGame(const std::string& appId) {
-    ShellExecuteA(NULL, "open", "steam://open/main", NULL, NULL, SW_SHOWNORMAL);
+bool steamLibrary::launchGame(const std::string& appId) {
+    if (appId.empty()) return false;
     std::string url = "steam://rungameid/" + appId;
+    std::cout << url << std::endl;
     auto result = (INT_PTR)ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
-    if (result <= 32) {
-        std::cout << "ShellExecute failed: " << result << std::endl;
-    }
+    return true;
 }
 
 const std::vector<std::string>& steamLibrary::getAppIds() const {

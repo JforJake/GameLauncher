@@ -47,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
+    connect(ui->PlayButton, &QPushButton::clicked, this, &MainWindow::onPlayButtonClicked);
 }
 
 void MainWindow::setWindow() {
@@ -78,7 +79,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *e) {
 
 void MainWindow::snapToEdge() {
     cout << "Test" << endl;
-    const int snapDistance = screenWidth / 5; // pixels to trigger snap
+    const int snapDistance = screenWidth / 2; // pixels to trigger snap
     QRect winGeom = frameGeometry();
 
     // Use the screen the window is currently on
@@ -155,18 +156,24 @@ void MainWindow::snapToEdge() {
 
 void MainWindow::onGameButtonClicked()
 {
-    QPixmap pixmap = this->property("fullPixmap").value<QPixmap>();
+    QObject* obj = sender();
+    if (!obj) return;
+
+    appId = obj->property("appId").toString();
+    QPixmap pixmap = obj->property("fullPixmap").value<QPixmap>();
 
     if (!pixmap.isNull()) {
-        QGraphicsScene* scene = new QGraphicsScene();
+        auto* scene = new QGraphicsScene();
         scene->addPixmap(pixmap);
         ui->CurrentGameLogo->setScene(scene);
         ui->CurrentGameLogo->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
     }
+}
 
-    QString appId = this->property("appId").toString();
-    cout << "test: " << appId.toStdString() << endl;
-    library->launchGame(appId.toStdString());
+void MainWindow::onPlayButtonClicked() {
+    if (library->launchGame(appId.toStdString())) {
+        this->showMinimized();
+    }
 }
 
 void MainWindow::onExitButtonClicked() {

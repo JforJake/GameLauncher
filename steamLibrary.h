@@ -9,7 +9,8 @@ class steamLibrary
 public:
     steamLibrary();
     const std::vector<std::string>& getAppIds() const;
-    void launchGame(const std::string& appId);
+    bool launchGame(const std::string& appId);
+    std::string getDescription;
 private:
     std::string steamPath;
     bool findSteamPath();
