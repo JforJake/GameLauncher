@@ -9,7 +9,7 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QGridLayout>
-
+#include <QTimer>
 
 using namespace std;
 
@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    ui->setupUi(this);
+
     screen = QGuiApplication::primaryScreen();
     geometry = screen->availableGeometry();
 
@@ -26,15 +28,15 @@ MainWindow::MainWindow(QWidget *parent)
     windowHeight = screenHeight;
 
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-    resize(windowWidth, windowHeight);
-    move(screenWidth - (windowWidth * 4), 0);
+
+    this->resize(windowWidth, windowHeight);
+    this->move(QPoint(screenWidth - (windowWidth * 4), 0));
+
     m_anim = new QPropertyAnimation(this, "pos", this);
     m_anim->setDuration(180);
     m_anim->setEasingCurve(QEasingCurve::OutCubic);
 
-    ui->setupUi(this);
     manager = new QNetworkAccessManager(this);
-
 
     QWidget* scrollContent = ui->scrollArea->widget();
     QGridLayout* grid = new QGridLayout(scrollContent);
@@ -43,7 +45,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     loadGameLibrary(grid);
 
+    connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
+}
+
+void MainWindow::setWindow() {
+
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *e) {
@@ -70,15 +77,14 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void MainWindow::snapToEdge() {
+    cout << "Test" << endl;
     const int snapDistance = screenWidth / 5; // pixels to trigger snap
     QRect winGeom = frameGeometry();
 
     // Use the screen the window is currently on
-    cout << "test1" << endl;
     screen = QGuiApplication::screenAt(winGeom.center());
     if (!screen) screen = QGuiApplication::primaryScreen();
 
-    cout << "test2" << endl;
     int x = winGeom.x();
     int y = winGeom.y();
     int w = winGeom.width();
@@ -87,7 +93,6 @@ void MainWindow::snapToEdge() {
     screenSide = 0;
 
     // Snap left
-    cout << "test5" << endl;
     if (screenSide == 0 && abs(x - geometry.x()) <= snapDistance) {
         m_anim->stop();
         m_anim->setStartValue(pos());
@@ -98,7 +103,6 @@ void MainWindow::snapToEdge() {
     }
 
     // Snap right
-    cout << "test6" << endl;
     int right = x + w;
     int availRight = geometry.x() + geometry.width();
     if (screenSide == 0 && abs(availRight - right) <= snapDistance) {
@@ -114,7 +118,6 @@ void MainWindow::snapToEdge() {
     int availBottom = geometry.y() + geometry.height();
     int bottom = y + winGeom.height();
 
-    cout << "test3" << endl;
     if (screenSide == 0 && abs(y - geometry.y()) <= snapDistance) {
         m_anim->stop();
         m_anim->setStartValue(pos());
@@ -124,7 +127,6 @@ void MainWindow::snapToEdge() {
         return;
     }
 
-    cout << "test4" << endl;
     // Snap bottom
     if (screenSide == 0 && abs(availBottom - bottom) <= snapDistance) {
         m_anim->stop();
@@ -135,8 +137,7 @@ void MainWindow::snapToEdge() {
         return;
     }
 
-    cout << "test7" << endl;
-    int newX, newY;
+    /*int newX, newY;
     if (screenSide == 1 || screenSide == 3) {
         cout << "Snap to side: " << screenSide << endl;
         newX = qBound(geometry.x(), x, availRight - w);
@@ -145,17 +146,11 @@ void MainWindow::snapToEdge() {
         cout << "Snap to side: " << screenSide << endl;
         //newX = avail.x();
         //newY = qBound(avail.y(), y, availBottom - winGeom.height());
-    } else {
+    } else {*/
         cout << "Snap to previous side: " << previousScreenSide << endl;
-        move(x, y);
+        this->move(x, y);
         return;
-    }
-
-    cout << "test8" << endl;
-    if ((newX != x || newY != y) && (screenSide == 1 || screenSide == 3)){
-        cout << "Moving to x = " << newX << " y = " << newY << endl;
-        move(newX, newY);
-    }
+    //}
 }
 
 void MainWindow::onGameButtonClicked()
@@ -170,11 +165,16 @@ void MainWindow::onGameButtonClicked()
     }
 
     QString appId = this->property("appId").toString();
+    cout << "test: " << appId.toStdString() << endl;
     library->launchGame(appId.toStdString());
 }
 
 void MainWindow::onExitButtonClicked() {
     QCoreApplication::quit();
+}
+
+void MainWindow::onMinimizeButtonClicked() {
+    this->showMinimized();
 }
 
 MainWindow::~MainWindow()

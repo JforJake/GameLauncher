@@ -22,9 +22,11 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void setWindow();
 
 protected:
     void onExitButtonClicked();
+    void onMinimizeButtonClicked();
     void onGameButtonClicked();
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
