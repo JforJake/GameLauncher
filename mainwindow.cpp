@@ -10,6 +10,8 @@
 #include <QNetworkReply>
 #include <QGridLayout>
 #include <QTimer>
+#include <SQLiteCpp/SQLiteCpp.h>
+#include <iostream>
 
 using namespace std;
 
@@ -39,15 +41,22 @@ MainWindow::MainWindow(QWidget *parent)
     manager = new QNetworkAccessManager(this);
 
     QWidget* scrollContent = ui->scrollArea->widget();
-    QGridLayout* grid = new QGridLayout(scrollContent);
-    grid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    grid->setSpacing(10);
+    libgrid = new QGridLayout(scrollContent);
+    libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    libgrid->setSpacing(10);
 
-    loadGameLibrary(grid);
+
+
+    gameLibrary = new GameLibrary("games.db");
+
+    loadGameLibrary(libgrid);
+
+
 
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
     connect(ui->PlayButton, &QPushButton::clicked, this, &MainWindow::onPlayButtonClicked);
+    connect(ui->ImportButton, &QPushButton::clicked, this, &MainWindow::onImportButtonClicked);
 }
 
 void MainWindow::setWindow() {
@@ -171,7 +180,7 @@ void MainWindow::onGameButtonClicked()
 }
 
 void MainWindow::onPlayButtonClicked() {
-    if (library->launchGame(appId.toStdString())) {
+    if (gameLibrary->launchGame(appId.toStdString())) {
         this->showMinimized();
     }
 }
@@ -184,23 +193,37 @@ void MainWindow::onMinimizeButtonClicked() {
     this->showMinimized();
 }
 
+void MainWindow::onImportButtonClicked() {
+    ImportWindow *window = new ImportWindow(this, gameLibrary);
+    window->setAttribute(Qt::WA_DeleteOnClose);
+    window->exec();
+    loadGameLibrary(libgrid);
+}
+
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete library;
+    delete gameLibrary;
+    // delete scanner;
 }
 
+// generates the display for the library from the database
+// need to figure out a better way to do this using a games id instead as it just uses steamappId for now.
 void MainWindow::loadGameLibrary(QGridLayout* grid)
 {
-    library = new steamLibrary();
-    const std::vector<std::string>& appIds = library->getAppIds();
+    GameLibrary library("games.db");
+    std::vector<Game> games = library.getAllGames();
+
     int row = 0, col = 0;
     const int maxCols = 4;
-    for (size_t i = 0; i < appIds.size(); ++i) {
-        QPushButton* gameButton = new QPushButton(QString::fromStdString(appIds[i]));
-        gameButton->setProperty("appId", QString::fromStdString(appIds[i]));
+
+    for (const auto& game : games) {
+        QPushButton* gameButton = new QPushButton(QString::fromStdString(game.name));
+        gameButton->setProperty("appId", static_cast<qulonglong>(game.steamAppId));
+
         QString url = QString("https://cdn.cloudflare.steamstatic.com/steam/apps/%1/library_600x900.jpg")
-                          .arg(QString::fromStdString(appIds[i]));
+                          .arg(game.steamAppId);
+
         QNetworkReply* reply = manager->get(QNetworkRequest(url));
         connect(reply, &QNetworkReply::finished, [reply, gameButton]() {
             QPixmap pixmap;
@@ -215,8 +238,10 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
             }
             reply->deleteLater();
         });
+
         connect(gameButton, &QPushButton::clicked, this, &MainWindow::onGameButtonClicked);
         grid->addWidget(gameButton, row, col);
+
         col++;
         if (col >= maxCols) {
             col = 0;

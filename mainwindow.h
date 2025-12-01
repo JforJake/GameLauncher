@@ -5,9 +5,10 @@
 #include <QMainWindow>
 #include <QPoint>
 #include <QPropertyAnimation>
-#include "steamLibrary.h"
+#include "steamscanner.h"
 #include <QNetworkAccessManager>
 #include <QGridLayout>
+#include "importwindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -29,6 +30,7 @@ protected:
     void onMinimizeButtonClicked();
     void onGameButtonClicked();
     void onPlayButtonClicked();
+    void onImportButtonClicked();
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
@@ -47,9 +49,10 @@ private:
     int windowWidth;
     int windowHeight;
     int screenSide; // 0-3 in clockwise order starting from top
-    steamLibrary* library;
+    GameLibrary* gameLibrary;
     QNetworkAccessManager* manager;
     void loadGameLibrary(QGridLayout* grid);
+    QGridLayout* libgrid; // grid to display games
 
 };
 #endif

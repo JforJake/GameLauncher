@@ -19,11 +19,28 @@ set(PROJECT_SOURCES
         mainwindow.ui
 )
 
+include(FetchContent)
+FetchContent_Declare(
+    SQLiteCpp
+    GIT_REPOSITORY https://github.com/SRombauts/SQLiteCpp.git
+    GIT_TAG        3.3.1
+)
+set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_INTERNAL_SQLITE ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(SQLiteCpp)
+
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(GameLauncher
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        steamLibrary.h steamLibrary.cpp
+
+        gamelibrary.h gamelibrary.cpp
+        steamscanner.h steamscanner.cpp
+        importwindow.h importwindow.cpp importwindow.ui
 
     )
 # Define target properties for Android with Qt 6 as:
@@ -44,7 +61,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(GameLauncher PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(GameLauncher PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network SQLiteCpp)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
