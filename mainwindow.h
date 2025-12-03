@@ -4,11 +4,10 @@
 #include <QMainWindow>
 #include <QMainWindow>
 #include <QPoint>
-#include <QPropertyAnimation>
-#include "steamscanner.h"
 #include <QNetworkAccessManager>
 #include <QGridLayout>
-#include "importwindow.h"
+#include "settings.h"
+#include "gamelibrary.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,7 +22,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    void setWindow();
+    void returnToMainUI();
 
 protected:
     void onExitButtonClicked();
@@ -31,24 +30,12 @@ protected:
     void onGameButtonClicked();
     void onPlayButtonClicked();
     void onImportButtonClicked();
-    void mousePressEvent(QMouseEvent *e) override;
-    void mouseMoveEvent(QMouseEvent *e) override;
-    void mouseReleaseEvent(QMouseEvent *e) override;
+    void onSettingsButtonClicked();
 
 private:
     Ui::MainWindow *ui;
-    QPoint m_dragPos;
-    void snapToEdge();
-    bool m_dragging = false;
+    Settings *sw;
     QString appId;
-    QPropertyAnimation *m_anim = nullptr;
-    QScreen *screen;
-    QRect geometry;
-    int screenWidth;
-    int screenHeight;
-    int windowWidth;
-    int windowHeight;
-    int screenSide; // 0-3 in clockwise order starting from top
     GameLibrary* gameLibrary;
     QNetworkAccessManager* manager;
     void loadGameLibrary(QGridLayout* grid);

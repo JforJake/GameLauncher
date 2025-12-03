@@ -41,6 +41,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         gamelibrary.h gamelibrary.cpp
         steamscanner.h steamscanner.cpp
         importwindow.h importwindow.cpp importwindow.ui
+        settings.cpp settings.h settings.ui
 
     )
 # Define target properties for Android with Qt 6 as:

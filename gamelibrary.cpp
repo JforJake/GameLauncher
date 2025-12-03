@@ -53,6 +53,6 @@ std::vector<Game> GameLibrary::getAllGames() {
 bool GameLibrary::launchGame(const std::string& appId) {
     if (appId.empty()) return false;
     std::string url = "steam://rungameid/" + appId;
-    auto result = (INT_PTR)ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+    ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
     return true;
 }
