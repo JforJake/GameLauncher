@@ -49,6 +49,29 @@ std::vector<Game> GameLibrary::getAllGames() {
     return games;
 }
 
+QString GameLibrary::getGameDesc(long long appId) {
+    QString gameDesc = "";
+    try {
+        SQLite::Statement query(db, "SELECT description FROM games WHERE steam_appid = ?");
+        query.bind(1, appId);
+
+        if (query.executeStep()) {
+            gameDesc = QString::fromStdString(query.getColumn(0).getString());
+        }
+
+    } catch (std::exception& e) {
+
+    }
+
+    return gameDesc;
+}
+
+void GameLibrary::removeGameByAppId(long long appId) {
+    SQLite::Statement query(db, "DELETE FROM games WHERE steam_appid = ?");
+    query.bind(1, appId);
+    query.exec();
+}
+
 // launches a steam game, uses appId to launch. will do from .exe later
 bool GameLibrary::launchGame(const std::string& appId) {
     if (appId.empty()) return false;

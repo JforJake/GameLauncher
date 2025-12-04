@@ -4,8 +4,7 @@
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <string>
 #include <vector>
-
-
+#include <QString>
 
 struct Game {
     int id;
@@ -24,6 +23,8 @@ public:
     void addSteamGame(long long appId, const std::string& name, const std::string& directory);
     std::vector<Game> getAllGames();
     bool launchGame(const std::string& appId);
+    void removeGameByAppId(long long appId);
+    QString getGameDesc(long long appId);
 
 private:
     SQLite::Database db;

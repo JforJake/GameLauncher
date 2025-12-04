@@ -31,6 +31,7 @@ protected:
     void onPlayButtonClicked();
     void onImportButtonClicked();
     void onSettingsButtonClicked();
+    void onRemoveButtonClicked();
 
 private:
     Ui::MainWindow *ui;
@@ -38,6 +39,7 @@ private:
     QString appId;
     GameLibrary* gameLibrary;
     QNetworkAccessManager* manager;
+    void clearGridLayout(QGridLayout* grid);
     void loadGameLibrary(QGridLayout* grid);
     QGridLayout* libgrid; // grid to display games
 

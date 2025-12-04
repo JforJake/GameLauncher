@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "importwindow.h"
-#include <QMouseEvent>
 #include <QScreen>
 #include <QGuiApplication>
 #include <QNetworkAccessManager>
@@ -41,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     manager = new QNetworkAccessManager(this);
 
-    QWidget* scrollContent = ui->scrollArea->widget();
+    QWidget* scrollContent = ui->FavoritesScrollArea->widget();
     libgrid = new QGridLayout(scrollContent);
     libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     libgrid->setSpacing(10);
@@ -50,11 +49,17 @@ MainWindow::MainWindow(QWidget *parent)
 
     loadGameLibrary(libgrid);
 
+    ui->CurrentGameInfo->hide();
+    ui->CurrentGameLogo->hide();
+    ui->PlayButton->hide();
+    ui->RemoveGameButton->hide();
+
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
-    connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
+    connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
     connect(ui->PlayButton, &QPushButton::clicked, this, &MainWindow::onPlayButtonClicked);
     connect(ui->ImportButton, &QPushButton::clicked, this, &MainWindow::onImportButtonClicked);
-    connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
+    connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
+    connect(ui->RemoveGameButton, &QPushButton::clicked, this, &MainWindow::onRemoveButtonClicked);
 }
 
 void MainWindow::onGameButtonClicked()
@@ -71,6 +76,14 @@ void MainWindow::onGameButtonClicked()
         ui->CurrentGameLogo->setScene(scene);
         ui->CurrentGameLogo->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
     }
+
+    ui->CurrentGameInfo->clear();
+    ui->CurrentGameInfo->append(gameLibrary->getGameDesc((long long)appId.toLong()));
+
+    ui->RemoveGameButton->show();
+    ui->CurrentGameInfo->show();
+    ui->CurrentGameLogo->show();
+    ui->PlayButton->show();
 }
 
 void MainWindow::onPlayButtonClicked() {
@@ -106,13 +119,33 @@ void MainWindow::returnToMainUI() {
     ui->centralwidget->show();
 }
 
+void MainWindow::onRemoveButtonClicked() {
+    gameLibrary->removeGameByAppId((long long)appId.toLong());
+    appId = 0;
+    clearGridLayout(libgrid);
+    loadGameLibrary(libgrid);
+    ui->CurrentGameInfo->hide();
+    ui->CurrentGameLogo->hide();
+    ui->PlayButton->hide();
+    ui->RemoveGameButton->hide();
+}
+
 MainWindow::~MainWindow()
 {
     delete ui;
     delete gameLibrary;
     delete sw;
-    // delete scanner;
 }
+
+void MainWindow::clearGridLayout(QGridLayout* grid) {
+    while (QLayoutItem* item = grid->takeAt(0)) {
+        if (QWidget* w = item->widget()) {
+            w->deleteLater();
+        }
+        delete item;
+    }
+}
+
 
 // generates the display for the library from the database
 // need to figure out a better way to do this using a games id instead as it just uses steamappId for now.
