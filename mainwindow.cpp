@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-#include "importwindow.h"
 #include <QScreen>
 #include <QGuiApplication>
 #include <QNetworkAccessManager>
@@ -43,25 +42,29 @@ MainWindow::MainWindow(QWidget *parent)
 
     manager = new QNetworkAccessManager(this);
 
-    QWidget* scrollContent = ui->LibraryScrollArea->widget();
-    libgrid = new QGridLayout(scrollContent);
+    QWidget* libContent = ui->LibraryScrollArea->widget();
+    libgrid = new QGridLayout(libContent);
     libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     libgrid->setSpacing(10);
 
     QWidget* favContent = ui->FavoritesScrollArea->widget();
     favgrid = new QGridLayout(favContent);
-    libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    libgrid->setSpacing(10);
+    favgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    favgrid->setSpacing(10);
 
     gameLibrary = new GameLibrary("games.db");
 
     loadGameLibrary(libgrid);
+    loadFavLibrary(favgrid);
 
     ui->CurrentGameInfo->hide();
     ui->CurrentGameLogo->hide();
     ui->PlayButton->hide();
     ui->RemoveGameButton->hide();
     ui->FavGameButton->hide();
+
+    ui->gameName->setText("");
+    ui->gameDesc->setText("");
 
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
@@ -70,7 +73,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
     connect(ui->MoreNewsButton, &QPushButton::clicked, this, &MainWindow::onMoreNewsButtonClicked);
     connect(ui->RemoveGameButton, &QPushButton::clicked, this, &MainWindow::onRemoveButtonClicked);
-    //connect(ui->FavGameButton, &QPushButton::clicked, this, &MainWindow::onFavButtonClicked);
+    connect(ui->FavGameButton, &QPushButton::clicked, this, &MainWindow::onFavButtonClicked);
+
 }
 
 void MainWindow::onGameButtonClicked()
@@ -78,7 +82,14 @@ void MainWindow::onGameButtonClicked()
     QObject* obj = sender();
     if (!obj) return;
 
+    gameId = obj->property("gameId").toString();
+    gameName = obj->property("name").toString();
     appId = obj->property("appId").toString();
+    filePath = obj->property("filePath").toString();
+    desc = obj->property("desc").toString();
+
+
+
     QPixmap pixmap = obj->property("fullPixmap").value<QPixmap>();
 
     if (!pixmap.isNull()) {
@@ -89,7 +100,10 @@ void MainWindow::onGameButtonClicked()
     }
 
     ui->CurrentGameInfo->clear();
-    ui->CurrentGameInfo->append(gameLibrary->getGameDesc((long long)appId.toLong()));
+    ui->CurrentGameInfo->append("");
+
+    ui->gameName->setText(gameName);
+    ui->gameDesc->setText(desc);
 
     ui->RemoveGameButton->show();
     ui->CurrentGameInfo->show();
@@ -99,8 +113,13 @@ void MainWindow::onGameButtonClicked()
 }
 
 void MainWindow::onPlayButtonClicked() {
-    if (gameLibrary->launchGame(appId.toStdString())) {
-        this->showMinimized();
+    qulonglong steamAppId = appId.toULongLong();
+    if (steamAppId > 0) {
+        if (gameLibrary->launchGameById(appId.toStdString()))
+            this->showMinimized();
+    } else {
+        if (gameLibrary->launchGameByPath(filePath.toStdString()))
+            this->showMinimized();
     }
 }
 
@@ -113,10 +132,10 @@ void MainWindow::onMinimizeButtonClicked() {
 }
 
 void MainWindow::onImportButtonClicked() {
-    ImportWindow *window = new ImportWindow(this, gameLibrary);
-    window->setAttribute(Qt::WA_DeleteOnClose);
-    window->exec();
-    loadGameLibrary(libgrid);
+    Wizard *wizard = new Wizard(gameLibrary, this);
+    wizard->setAttribute(Qt::WA_DeleteOnClose);
+    connect(wizard, &QWizard::accepted, this, [this]() { loadGameLibrary(libgrid); });
+    wizard->show();
 }
 
 void MainWindow::onSettingsButtonClicked() {
@@ -138,7 +157,7 @@ void MainWindow::returnToMainUI() {
 }
 
 void MainWindow::onRemoveButtonClicked() {
-    gameLibrary->removeGameByAppId((long long)appId.toLong());
+    gameLibrary->removeGameById(gameId.toInt());
     appId = 0;
     clearGridLayout(libgrid);
     loadGameLibrary(libgrid);
@@ -149,8 +168,9 @@ void MainWindow::onRemoveButtonClicked() {
     ui->FavGameButton->hide();
 }
 
-void MainWindow::onFavButtonClicked(QGridLayout* grid) {
-
+void MainWindow::onFavButtonClicked() {
+    gameLibrary->toggleFavorite(gameId.toInt());
+    loadFavLibrary(favgrid);
 }
 
 MainWindow::~MainWindow()
@@ -169,42 +189,42 @@ void MainWindow::clearGridLayout(QGridLayout* grid) {
     }
 }
 
-
-// generates the display for the library from the database
-// need to figure out a better way to do this using a games id instead as it just uses steamappId for now.
 void MainWindow::loadGameLibrary(QGridLayout* grid)
 {
-    GameLibrary library("games.db");
-    vector<Game> games = library.getAllGames();
+    while (QLayoutItem *item = grid->takeAt(0)) {
+        delete item->widget();
+        delete item;
+    }
 
+    vector<Game> games = gameLibrary->getAllGames();
     int row = 0, col = 0;
     const int maxCols = 4;
-
     for (const auto& game : games) {
         QPushButton* gameButton = new QPushButton(QString::fromStdString(game.name));
+        gameButton->setProperty("gameId", static_cast<qulonglong>(game.id));
         gameButton->setProperty("appId", static_cast<qulonglong>(game.steamAppId));
+        gameButton->setProperty("filePath", QString::fromStdString(game.directory));
+        gameButton->setProperty("name", QString::fromStdString(game.name));
+        gameButton->setProperty("desc", QString::fromStdString(game.description));
 
-        QString url = QString("https://cdn.cloudflare.steamstatic.com/steam/apps/%1/library_600x900.jpg")
-                          .arg(game.steamAppId);
+        // load image
+        QString imagePath = QString::fromStdString(game.imagePath);
+        QPixmap pixmap(imagePath);
 
-        QNetworkReply* reply = manager->get(QNetworkRequest(url));
-        connect(reply, &QNetworkReply::finished, [reply, gameButton]() {
-            QPixmap pixmap;
-            pixmap.loadFromData(reply->readAll());
-            if (!pixmap.isNull()) {
-                QPixmap scaled = pixmap.scaledToWidth(88, Qt::SmoothTransformation);
-                gameButton->setFixedSize(scaled.size());
-                gameButton->setIcon(QIcon(scaled));
-                gameButton->setIconSize(scaled.size());
-                gameButton->setText("");
-                gameButton->setProperty("fullPixmap", pixmap);
-            }
-            reply->deleteLater();
-        });
+        if (!pixmap.isNull()) {
+            QPixmap scaled = pixmap.scaledToWidth(88, Qt::SmoothTransformation);
+            gameButton->setFixedSize(scaled.size());
+            gameButton->setIcon(QIcon(scaled));
+            gameButton->setIconSize(scaled.size());
+            gameButton->setText("");
+            gameButton->setProperty("fullPixmap", pixmap);
+        } else {
+            // if image doesn't exist
+            gameButton->setText(QString::fromStdString(game.name));
+        }
 
         connect(gameButton, &QPushButton::clicked, this, &MainWindow::onGameButtonClicked);
         grid->addWidget(gameButton, row, col);
-
         col++;
         if (col >= maxCols) {
             col = 0;
@@ -212,3 +232,48 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
         }
     }
 }
+
+void MainWindow::loadFavLibrary(QGridLayout* grid)
+{
+    while (QLayoutItem *item = grid->takeAt(0)) {
+        delete item->widget();
+        delete item;
+    }
+
+    vector<Game> games = gameLibrary->getFavoriteGames();
+    int row = 0, col = 0;
+    const int maxCols = 4;
+    for (const auto& game : games) {
+        QPushButton* gameButton = new QPushButton(QString::fromStdString(game.name));
+        gameButton->setProperty("gameId", static_cast<qulonglong>(game.id));
+        gameButton->setProperty("appId", static_cast<qulonglong>(game.steamAppId));
+        gameButton->setProperty("filePath", QString::fromStdString(game.directory));
+        gameButton->setProperty("name", QString::fromStdString(game.name));
+        gameButton->setProperty("desc", QString::fromStdString(game.description));
+
+        // load image
+        QString imagePath = QString::fromStdString(game.imagePath);
+        QPixmap pixmap(imagePath);
+
+        if (!pixmap.isNull()) {
+            QPixmap scaled = pixmap.scaledToWidth(88, Qt::SmoothTransformation);
+            gameButton->setFixedSize(scaled.size());
+            gameButton->setIcon(QIcon(scaled));
+            gameButton->setIconSize(scaled.size());
+            gameButton->setText("");
+            gameButton->setProperty("fullPixmap", pixmap);
+        } else {
+            // if image doesn't exist
+            gameButton->setText(QString::fromStdString(game.name));
+        }
+
+        connect(gameButton, &QPushButton::clicked, this, &MainWindow::onGameButtonClicked);
+        grid->addWidget(gameButton, row, col);
+        col++;
+        if (col >= maxCols) {
+            col = 0;
+            row++;
+        }
+    }
+}
+

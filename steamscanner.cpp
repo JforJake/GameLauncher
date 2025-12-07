@@ -1,5 +1,4 @@
 #include "steamscanner.h"
-#include <iostream>
 #include <windows.h>
 #include <vector>
 #include <fstream>
@@ -38,7 +37,6 @@ bool steamScanner::findSteamPath() {
     steamPath = buffer;
     steamPath += "/steamapps/libraryfolders.vdf";
 
-    // std::cout << steamPath << "\n";
     return true;
 }
 
@@ -72,7 +70,6 @@ std::vector<std::string> steamScanner::collectManifests(std::vector<std::string>
     std::vector<std::string> collectedManifests;
 
     for (const auto& library : locations) {
-        // std::cout << library << "\n";
 
         for (const auto& entry : std::filesystem::directory_iterator(library)) {
             std::string manifestName = entry.path().filename().string();
@@ -91,10 +88,6 @@ std::vector<std::string> steamScanner::collectManifests(std::vector<std::string>
             }
         }
     }
-
-    // for (const auto& manifest : collectedManifests) {
-    //     std::cout << manifest << "\n";
-    // }
 
     return collectedManifests;
 }
@@ -117,14 +110,12 @@ void steamScanner::loadFromManifests(std::vector<std::string> entries) {
                 size_t lastQuote = line.rfind('"');
                 size_t firstQuote = line.rfind('"', lastQuote -1);
                 appId = std::stoll(line.substr(firstQuote +1, lastQuote - firstQuote - 1));
-                // std::cout << appId << "\n";
             }
 
             if (line.find("\"name\"") != std::string::npos){
                 size_t lastQuote = line.rfind('"');
                 size_t firstQuote = line.rfind('"', lastQuote -1);
                 name = line.substr(firstQuote +1, lastQuote - firstQuote - 1);
-                // std::cout << name << "\n";
             }
 
             if (line.find("\"installdir\"") != std::string::npos){
@@ -134,7 +125,6 @@ void steamScanner::loadFromManifests(std::vector<std::string> entries) {
                 size_t lastSlash = entry.rfind('/');
                 directory = entry.substr(0, lastSlash + 1);
                 directory += "common/" + ending;
-                // std::cout << directory << "\n";
             }
         }
 

@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "newspage.h"
 #include "gamelibrary.h"
+#include "wizard.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -25,6 +26,7 @@ public:
     ~MainWindow();
     void returnToMainUI();
 
+
 protected:
     void onExitButtonClicked();
     void onMinimizeButtonClicked();
@@ -34,17 +36,22 @@ protected:
     void onSettingsButtonClicked();
     void onMoreNewsButtonClicked();
     void onRemoveButtonClicked();
-    void onFavButtonClicked(QGridLayout* grid);
+    void onFavButtonClicked();
 
 private:
     Ui::MainWindow *ui;
     Settings *sw;
     NewsPage *nw;
     QString appId;
+    QString gameId;
+    QString gameName;
+    QString desc;
+    QString filePath;
     GameLibrary* gameLibrary;
     QNetworkAccessManager* manager;
     void clearGridLayout(QGridLayout* grid);
     void loadGameLibrary(QGridLayout* grid);
+    void loadFavLibrary(QGridLayout* grid);
     QGridLayout* libgrid; // grid to display all games
     QGridLayout* favgrid; // grid to display games
 };

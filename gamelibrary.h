@@ -5,10 +5,12 @@
 #include <string>
 #include <vector>
 #include <QString>
+#include "steamfetcher.h"
 
 struct Game {
     int id;
     std::string name;
+    std::string description;
     std::string directory;
     std::string imagePath;
     long long steamAppId;
@@ -20,15 +22,19 @@ class GameLibrary
 {
 public:
     GameLibrary(const std::string& dbPath);
+    void addGame(const std::string& name, const std::string& directory);
     void addSteamGame(long long appId, const std::string& name, const std::string& directory);
     std::vector<Game> getAllGames();
-    bool launchGame(const std::string& appId);
-    void removeGameByAppId(long long appId);
-    QString getGameDesc(long long appId);
+    std::vector<Game> getFavoriteGames();
+    bool launchGameById(const std::string& appId);
+    bool launchGameByPath(const std::string& filePath);
+    void removeGameById(const int id);
+    void toggleFavorite(const int id);
 
 private:
     SQLite::Database db;
     void createTables();
+    SteamFetcher steamFetcher;
 };
 
 #endif // GAMELIBRARY_H
