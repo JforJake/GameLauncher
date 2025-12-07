@@ -3,8 +3,9 @@
 #include "mainwindow.h"
 #include <QPushButton>
 #include <Qscreen>
-#include <iostream>
 #include <QApplication>
+#include <QparallelAnimationGroup>
+#include <iostream>
 
 Settings::Settings(QWidget *parent)
     : QWidget(parent)
@@ -82,11 +83,15 @@ void Settings::applySettings() {
     }
 
     if (ui->ColorSchemeBox->currentData().toInt() == 0) {
-        mw->setPalette(dark);
-        this->setPalette(dark);
+        //mw->setPalette(dark);
+        //this->setPalette(dark);
+        qApp->setStyle("Fusion");
+        qApp->setPalette(dark);
     } else {
-        mw->setPalette(light);
-        this->setPalette(light);
+        //mw->setPalette(light);
+        //this->setPalette(light);
+        qApp->setStyle("Fusion");
+        qApp->setPalette(light);
     }
 }
 
@@ -96,18 +101,22 @@ void Settings::moveApplication(int screenIndex, int side) {
     if (screenIndex != QGuiApplication::screens().indexOf(currScreen)) {
         currScreen = screens[screenIndex];
         geometry = currScreen->availableGeometry();
-        this->resize(windowWidth, screenHeight);
-        mw->resize(windowWidth, screenHeight);
+
+        screenWidth = geometry.width();
+        screenHeight = geometry.height();
         windowHeight = screenHeight;
+
+        this->resize(windowWidth, windowHeight);
+        mw->resize(windowWidth, windowHeight);
     }
 
     m_anim->stop();
     m_anim->setStartValue(QPoint(mw->pos()));
 
     if (side == 0) {
-        m_anim->setEndValue(QPoint(0, 0));
+        m_anim->setEndValue(QPoint(geometry.x(), geometry.y()));
     } else {
-        m_anim->setEndValue(QPoint(screenWidth - windowWidth, 0));
+        m_anim->setEndValue(QPoint(geometry.x() + (screenWidth - windowWidth), geometry.y()));
     }
 
     m_anim->start();
@@ -151,7 +160,7 @@ void Settings::setColorSchemes() {
     // Text colors
     light.setColor(QPalette::WindowText, QColor(0, 0, 0));
     light.setColor(QPalette::Text,        QColor(0, 0, 0));
-    light.setColor(QPalette::ButtonText,  QColor(255, 255, 255)); // white on teal
+    light.setColor(QPalette::ButtonText,  QColor(0, 0, 0)); // white on teal
 
     // Buttons
     light.setColor(QPalette::Button, QColor(0, 156, 148)); // teal

@@ -21,6 +21,9 @@ MainWindow::MainWindow(QWidget *parent)
     sw = new Settings(this);
     sw->hide();
 
+    nw = new NewsPage(this);
+    nw->hide();
+
     if (true) {
         sw->currScreen = QGuiApplication::primaryScreen();
         sw->geometry = sw->currScreen->availableGeometry();
@@ -40,8 +43,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     manager = new QNetworkAccessManager(this);
 
-    QWidget* scrollContent = ui->FavoritesScrollArea->widget();
+    QWidget* scrollContent = ui->LibraryScrollArea->widget();
     libgrid = new QGridLayout(scrollContent);
+    libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    libgrid->setSpacing(10);
+
+    QWidget* favContent = ui->FavoritesScrollArea->widget();
+    favgrid = new QGridLayout(favContent);
     libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     libgrid->setSpacing(10);
 
@@ -53,13 +61,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->CurrentGameLogo->hide();
     ui->PlayButton->hide();
     ui->RemoveGameButton->hide();
+    ui->FavGameButton->hide();
 
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
     connect(ui->PlayButton, &QPushButton::clicked, this, &MainWindow::onPlayButtonClicked);
     connect(ui->ImportButton, &QPushButton::clicked, this, &MainWindow::onImportButtonClicked);
     connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitButtonClicked);
+    connect(ui->MoreNewsButton, &QPushButton::clicked, this, &MainWindow::onMoreNewsButtonClicked);
     connect(ui->RemoveGameButton, &QPushButton::clicked, this, &MainWindow::onRemoveButtonClicked);
+    //connect(ui->FavGameButton, &QPushButton::clicked, this, &MainWindow::onFavButtonClicked);
 }
 
 void MainWindow::onGameButtonClicked()
@@ -84,6 +95,7 @@ void MainWindow::onGameButtonClicked()
     ui->CurrentGameInfo->show();
     ui->CurrentGameLogo->show();
     ui->PlayButton->show();
+    ui->FavGameButton->show();
 }
 
 void MainWindow::onPlayButtonClicked() {
@@ -114,6 +126,12 @@ void MainWindow::onSettingsButtonClicked() {
     sw->setCurrIndex();
 }
 
+void MainWindow::onMoreNewsButtonClicked() {
+    ui->centralwidget->hide();
+    nw->show();
+    nw->resize(sw->windowWidth, sw->windowHeight);
+}
+
 void MainWindow::returnToMainUI() {
     sw->hide();
     ui->centralwidget->show();
@@ -128,6 +146,11 @@ void MainWindow::onRemoveButtonClicked() {
     ui->CurrentGameLogo->hide();
     ui->PlayButton->hide();
     ui->RemoveGameButton->hide();
+    ui->FavGameButton->hide();
+}
+
+void MainWindow::onFavButtonClicked(QGridLayout* grid) {
+
 }
 
 MainWindow::~MainWindow()
