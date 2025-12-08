@@ -81,7 +81,6 @@ GameMetadata SteamFetcher::fetchGameData(const std::string &gameName)
             if (gameName.toLower() == searchName) {
                 QString appIdString = game["appid"].toString();
                 int appId = appIdString.toInt();
-                qDebug() << "Exact match found:" << gameName << "App ID:" << appId;
                 reply->deleteLater();
                 return fetchBySteamId(appId);
             }
@@ -90,7 +89,6 @@ GameMetadata SteamFetcher::fetchGameData(const std::string &gameName)
         if (!results.isEmpty()) {
             QString appIdString = results[0].toObject()["appid"].toString();
             int appId = appIdString.toInt();
-            qDebug() << "Using first result, App ID:" << appId;
             reply->deleteLater();
             return fetchBySteamId(appId);
         }

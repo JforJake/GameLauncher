@@ -2,6 +2,10 @@
 #define NEWSPAGE_H
 
 #include <QWidget>
+#include <qboxlayout>
+#include <qnetworkaccessmanager>
+#include <qscrollarea>
+#include "gamelibrary.h"
 
 namespace Ui {
 class NewsPage;
@@ -13,14 +17,52 @@ class NewsPage : public QWidget
 {
     Q_OBJECT
 
+
+    struct NewsItem {
+        QString thumbnailUrl;
+        QString title;
+        QString contents;
+        QString source;
+        QString url;
+        int timestamp;
+    };
+
+
 public:
     explicit NewsPage(QWidget *parent = nullptr);
+    void setupNewsDisplay();
+    QWidget* createNewsCard(const QString &thumbnailUrl,
+                            const QString &title,
+                            const QString &description,
+                            const QString &source,
+                            const QString &articleUrl);
+    void addNewsCard(const QString &thumbnailUrl,
+                    const QString &title,
+                    const QString &description,
+                    const QString &source,
+                    const QString &articleUrl);
     ~NewsPage();
 
 private:
     Ui::NewsPage *ui;
     MainWindow *mw = nullptr;
     void onBackToMenuButtonClicked();
+    void loadGameNames();
+    void fetchNewsForAllGames();
+    void fetchSteamNews(QStringList AppIds);
+    void onNewsReceived(QNetworkReply *reply);
+    void sortAndDisplayNews();
+    QScrollArea *scrollArea;
+    QWidget *newsContainer;
+    QVBoxLayout *newsLayout;
+    QStringList gameNames;
+    QStringList gameAppIds;
+    GameLibrary* gameLibrary;
+    QNetworkAccessManager* networkManager;
+    QList<NewsItem> allNewsItems;
+
+
+
 };
 
 #endif // NEWSPAGE_H

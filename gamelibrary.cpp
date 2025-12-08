@@ -110,3 +110,28 @@ std::vector<Game> GameLibrary::getFavoriteGames() {
     }
     return games;
 }
+
+QStringList GameLibrary::returnNames() {
+    QStringList gameNames;
+    SQLite::Statement query(db, "SELECT name FROM games");
+
+    while (query.executeStep()) {
+        std::string name = query.getColumn(0).getString();
+        gameNames.append(QString::fromStdString(name));
+    }
+    return gameNames;
+};
+
+QStringList GameLibrary::returnSteamAppIds() {
+    QStringList gameSteamAppIds;
+    SQLite::Statement query(db, "SELECT steam_appid FROM games");
+
+    while (query.executeStep()) {
+        std::string name = query.getColumn(0).getString();
+        gameSteamAppIds.append(QString::fromStdString(name));
+    }
+    return gameSteamAppIds;
+};
+
+
+

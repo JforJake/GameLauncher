@@ -30,6 +30,8 @@ public:
     bool launchGameByPath(const std::string& filePath);
     void removeGameById(const int id);
     void toggleFavorite(const int id);
+    QStringList returnNames();
+    QStringList returnSteamAppIds();
 
 private:
     SQLite::Database db;
