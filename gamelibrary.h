@@ -16,6 +16,7 @@ struct Game {
     long long steamAppId;
     int playtime;
     std::string lastOpened;
+    int favorited = false;
 };
 
 class GameLibrary

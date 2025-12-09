@@ -25,6 +25,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     void returnToMainUI();
+    void setGlobalStyle();
 
 
 protected:
@@ -47,6 +48,8 @@ private:
     QString gameName;
     QString desc;
     QString filePath;
+    bool favorited;
+    bool currGameSectionHidden;
     GameLibrary* gameLibrary;
     QNetworkAccessManager* manager;
     void clearGridLayout(QGridLayout* grid);

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/res">
+        <file>res/MinimizeIcon.png</file>
+        <file>res/XIcon.png</file>
+        <file>res/SettingsIcon.png</file>
+        <file>res/ImportIcon.png</file>
+    </qresource>
+</RCC>

@@ -5,6 +5,10 @@
 #include <Qscreen>
 #include <QApplication>
 #include <QparallelAnimationGroup>
+#include <windows.h>
+#include <QCoreApplication>
+#include <fstream>
+#include <QDir>
 #include <iostream>
 
 Settings::Settings(QWidget *parent)
@@ -12,11 +16,10 @@ Settings::Settings(QWidget *parent)
     , ui(new Ui::Settings)
 {
     ui->setupUi(this);
+    setColorSchemes();
 
     mw = qobject_cast<MainWindow*>(parent);
     screens = QGuiApplication::screens();
-    setColorSchemes();
-    qApp->setPalette(dark);
 
     // Adding items for screen side setting
     ui->ScreenSideBox->addItem("Left", 0);
@@ -35,6 +38,16 @@ Settings::Settings(QWidget *parent)
     // Adding items for color scheme setting
     ui->ColorSchemeBox->addItem("Dark Mode", 0);
     ui->ColorSchemeBox->addItem("Light Mode", 1);
+
+    // Adding items for program width setting
+    ui->ProgramWidthBox->addItem("360 Pixels", 0);
+    ui->ProgramWidthBox->addItem("480 Pixels", 1);
+    ui->ProgramWidthBox->addItem("600 Pixels", 2);
+    ui->ProgramWidthBox->addItem("720 Pixels", 3);
+
+    // Adding items for startup setting
+    ui->StartupBox->addItem("False", 0);
+    ui->StartupBox->addItem("True", 1);
 
     m_anim = new QPropertyAnimation(mw, "pos", this);
     m_anim->setDuration(250);
@@ -55,8 +68,11 @@ void Settings::onBackButtonClicked() {
 
 void Settings::setCurrIndex() {
     ui->ScreenSideBox->setCurrentIndex(currSide);
-    ui->ScreenNumberBox->setCurrentIndex(QGuiApplication::screens().indexOf(currScreen));
+    ui->ScreenNumberBox->setCurrentIndex(currScreenIndex);
     ui->AlwaysOnTopBox->setCurrentIndex(currOnTop);
+    ui->ColorSchemeBox->setCurrentIndex(currColorScheme);
+    ui->ProgramWidthBox->setCurrentIndex(currWidthIndex);
+    ui->StartupBox->setCurrentIndex(currStartupIndex);
 }
 
 void Settings::onApplyButtonClicked() {
@@ -65,50 +81,88 @@ void Settings::onApplyButtonClicked() {
 
 void Settings::applySettings() {
     if (!mw) return;
-    int screen = ui->ScreenNumberBox->currentData().toInt();
-    int newSide = ui->ScreenSideBox->currentData().toInt();
 
-    if (screen != QGuiApplication::screens().indexOf(currScreen) || newSide != currSide) {
-        moveApplication(screen, newSide);
-    }
+    // Set all values before changes
+    currSide = ui->ScreenSideBox->currentData().toInt();
+    currScreenIndex = ui->ScreenNumberBox->currentData().toInt();
+    currOnTop = ui->AlwaysOnTopBox->currentData().toInt();
+    currColorScheme = ui->ColorSchemeBox->currentData().toInt();
+    currWidthIndex = ui->ProgramWidthBox->currentData().toInt();
+    currStartupIndex = ui->StartupBox->currentData().toInt();
 
-    if (ui->AlwaysOnTopBox->currentData().toInt() == 0) {
+    // Changes screen side and which screen
+    moveApplication(currScreenIndex, currSide);
+
+    // Changes always on top flags
+    if (currOnTop == 0) {
         mw->setWindowFlag(Qt::WindowStaysOnTopHint, false);
         mw->show();
-        currOnTop = 0;
     } else {
         mw->setWindowFlag(Qt::WindowStaysOnTopHint, true);
         mw->show();
-        currOnTop = 1;
     }
 
-    if (ui->ColorSchemeBox->currentData().toInt() == 0) {
-        //mw->setPalette(dark);
-        //this->setPalette(dark);
+    // Changes color scheme
+    if (currColorScheme == 0) {
         qApp->setStyle("Fusion");
         qApp->setPalette(dark);
     } else {
-        //mw->setPalette(light);
-        //this->setPalette(light);
         qApp->setStyle("Fusion");
         qApp->setPalette(light);
+        currColorScheme = 1;
     }
+    mw->setGlobalStyle();
+
+    // Changes program width
+    switch(currWidthIndex) {
+        case 0:
+            windowWidth = 360;
+            break;
+        case 1:
+            windowWidth = 480;
+            break;
+        case 2:
+            windowWidth = 600;
+            break;
+        case 3:
+            windowWidth = 720;
+            break;
+    }
+    this->resize(windowWidth, windowHeight);
+    mw->resize(windowWidth, windowHeight);
+
+    // Changes startup setting
+    if (currStartupIndex == 1) {
+        enableStartup();
+        startupApp = true;
+    } else {
+        disableStartup();
+        startupApp = false;
+    }
+
+    j["screenSide"] = ui->ScreenSideBox->currentData().toInt();
+    j["screenNumber"] = ui->ScreenNumberBox->currentData().toInt();
+    j["alwaysOnTop"] = ui->AlwaysOnTopBox->currentData().toInt();
+    j["colorScheme"] = ui->ColorSchemeBox->currentData().toInt();
+    j["programWidth"] = ui->ProgramWidthBox->currentData().toInt();
+    j["startup"] = ui->StartupBox->currentData().toInt();
+
+    std::ofstream file("settings.json");
+    file << j.dump(4);   // Pretty-printed JSON
 }
 
 void Settings::moveApplication(int screenIndex, int side) {
     if (screenIndex < 0 || screenIndex >= screens.size()) return;
 
-    if (screenIndex != QGuiApplication::screens().indexOf(currScreen)) {
-        currScreen = screens[screenIndex];
-        geometry = currScreen->availableGeometry();
+    currScreen = screens[screenIndex];
+    geometry = currScreen->availableGeometry();
 
-        screenWidth = geometry.width();
-        screenHeight = geometry.height();
-        windowHeight = screenHeight;
+    screenWidth = geometry.width();
+    screenHeight = geometry.height();
+    windowHeight = screenHeight;
 
-        this->resize(windowWidth, windowHeight);
-        mw->resize(windowWidth, windowHeight);
-    }
+    this->resize(windowWidth, windowHeight);
+    mw->resize(windowWidth, windowHeight);
 
     m_anim->stop();
     m_anim->setStartValue(QPoint(mw->pos()));
@@ -123,11 +177,6 @@ void Settings::moveApplication(int screenIndex, int side) {
     currSide = side;
 }
 
-Settings::~Settings()
-{
-    delete ui;
-}
-
 void Settings::setColorSchemes() {
     // Dark Mode
     // Main window + base background
@@ -137,7 +186,7 @@ void Settings::setColorSchemes() {
     // Text colors
     dark.setColor(QPalette::WindowText, QColor(255, 255, 255));
     dark.setColor(QPalette::Text,        QColor(255, 255, 255));
-    dark.setColor(QPalette::ButtonText,  QColor(255, 255, 255));
+    dark.setColor(QPalette::ButtonText,  QColor(0, 0, 0));
 
     // Buttons
     dark.setColor(QPalette::Button, QColor(0, 156, 148)); // teal
@@ -174,4 +223,45 @@ void Settings::setColorSchemes() {
 
     // Highlight (same)
     light.setColor(QPalette::Highlight, QColor(0, 156, 148));
+}
+
+void Settings::enableStartup() {
+    HKEY hKey;
+    LONG result = RegOpenKeyExA(
+        HKEY_CURRENT_USER,
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+        0,
+        KEY_SET_VALUE,
+        &hKey
+        );
+
+    if (result == ERROR_SUCCESS) {
+        std::string appPath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath()).toStdString();
+        RegSetValueExA(hKey, "GameLauncher", 0, REG_SZ,
+                       (BYTE*)appPath.c_str(),
+                       appPath.size() + 1);
+        RegCloseKey(hKey);
+    }
+}
+
+void Settings::disableStartup() {
+    HKEY hKey;
+    LONG result = RegOpenKeyExA(
+        HKEY_CURRENT_USER,
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+        0,
+        KEY_SET_VALUE,
+        &hKey
+        );
+
+    if (result == ERROR_SUCCESS) {
+        RegDeleteValueA(hKey, "GameLauncher");
+        RegCloseKey(hKey);
+    }
+}
+
+
+Settings::~Settings()
+{
+    delete ui;
 }

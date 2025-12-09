@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(GameLauncher VERSION 0.1 LANGUAGES CXX)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -45,6 +46,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         newspage.cpp newspage.h newspage.ui
         wizard.h wizard.cpp wizard.ui
         steamfetcher.h steamfetcher.cpp
+        resources.qrc
 
 
 

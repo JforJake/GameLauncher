@@ -106,6 +106,7 @@ std::vector<Game> GameLibrary::getFavoriteGames() {
         game.steamAppId = query.getColumn(5).isNull() ? 0 : query.getColumn(5).getInt64();
         game.playtime = query.getColumn(6).getInt();
         game.lastOpened = query.getColumn(7).isNull() ? "" : query.getColumn(7).getString();
+        game.favorited = true;
         games.push_back(game);
     }
     return games;

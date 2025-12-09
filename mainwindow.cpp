@@ -8,6 +8,8 @@
 #include <QGridLayout>
 #include <QTimer>
 #include <SQLiteCpp/SQLiteCpp.h>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -23,22 +25,50 @@ MainWindow::MainWindow(QWidget *parent)
     nw = new NewsPage(this);
     nw->hide();
 
-    if (true) {
-        sw->currScreen = QGuiApplication::primaryScreen();
-        sw->geometry = sw->currScreen->availableGeometry();
+    sw->setColorSchemes();
+    setWindowFlags(Qt::FramelessWindowHint);
+    sw->currScreen = QGuiApplication::primaryScreen();
+    sw->geometry = sw->currScreen->availableGeometry();
 
-        sw->screenWidth = sw->geometry.width();
-        sw->screenHeight = sw->geometry.height();
-        sw->windowWidth = 480;
-        sw->windowHeight = sw->screenHeight;
+    sw->screenWidth = sw->geometry.width();
+    sw->screenHeight = sw->geometry.height();
+    sw->windowWidth = 480;
+    sw->windowHeight = sw->screenHeight;
 
-        setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    std::ifstream file("settings.json");
+    if (file.is_open()) {
+        file >> sw->j;
+        auto& j = sw->j;
+
+        if (j.contains("screenSide"))
+            sw->currSide = j["screenSide"];
+        if (j.contains("screenNumber"))
+            sw->currScreenIndex = j["screenNumber"];
+        if (j.contains("alwaysOnTop"))
+            sw->currOnTop = j["alwaysOnTop"];
+        if (j.contains("colorScheme"))
+            sw->currColorScheme = j["colorScheme"];
+        if (j.contains("programWidth"))
+            sw->currWidthIndex = j["programWidth"];
+        if (j.contains("startup")) {
+            sw->currStartupIndex = j["startup"];
+        }
+    } else {
+        sw->currSide = 1;
+        sw->currScreenIndex = 0;
         sw->currOnTop = 1;
+        sw->currColorScheme = 0;
+        sw->currWidthIndex = 1;
+        sw->currStartupIndex = 0;
     }
-
-    this->resize(sw->windowWidth, sw->windowHeight);
-    this->move(QPoint(sw->screenWidth - sw->windowWidth, 0));
-    sw->currSide = 1;
+    if (sw->currScreenIndex >= 0 && sw->currScreenIndex < sw->screens.size()) {
+        sw->currScreen = sw->screens[sw->currScreenIndex];
+    } else {
+        sw->currScreen = QGuiApplication::primaryScreen();
+        sw->currScreenIndex = 0;
+    }
+    sw->setCurrIndex();
+    sw->applySettings();
 
     manager = new QNetworkAccessManager(this);
 
@@ -57,14 +87,17 @@ MainWindow::MainWindow(QWidget *parent)
     loadGameLibrary(libgrid);
     loadFavLibrary(favgrid);
 
-    ui->CurrentGameInfo->hide();
-    ui->CurrentGameLogo->hide();
-    ui->PlayButton->hide();
-    ui->RemoveGameButton->hide();
-    ui->FavGameButton->hide();
+    ui->CurrentGame->hide();
+    currGameSectionHidden = true;
 
     ui->gameName->setText("");
     ui->gameDesc->setText("");
+
+    setGlobalStyle();
+    ui->SettingsButton->setIcon(QIcon(":/res/res/SettingsIcon.png"));
+    ui->ImportButton->setIcon(QIcon(":/res/res/ImportIcon.png"));
+    ui->MinimizeButton->setIcon(QIcon(":/res/res/MinimizeIcon.png"));
+    ui->ExitButton->setIcon(QIcon(":/res/res/XIcon.png"));
 
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
@@ -74,42 +107,46 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->MoreNewsButton, &QPushButton::clicked, this, &MainWindow::onMoreNewsButtonClicked);
     connect(ui->RemoveGameButton, &QPushButton::clicked, this, &MainWindow::onRemoveButtonClicked);
     connect(ui->FavGameButton, &QPushButton::clicked, this, &MainWindow::onFavButtonClicked);
-
 }
 
 void MainWindow::onGameButtonClicked()
 {
+
     QObject* obj = sender();
     if (!obj) return;
 
-    gameId = obj->property("gameId").toString();
-    gameName = obj->property("name").toString();
-    appId = obj->property("appId").toString();
-    filePath = obj->property("filePath").toString();
-    desc = obj->property("desc").toString();
+    if (!currGameSectionHidden && gameId == obj->property("gameId").toString()) {
+        ui->CurrentGame->hide();
+        currGameSectionHidden = true;
+    } else {
+        ui->CurrentGame->show();
+        currGameSectionHidden = false;
 
+        gameId = obj->property("gameId").toString();
+        gameName = obj->property("name").toString();
+        appId = obj->property("appId").toString();
+        filePath = obj->property("filePath").toString();
+        desc = obj->property("desc").toString();
+        favorited = obj->property("favorited").toBool();
 
+        QString imagePath = obj->property("imagePath").toString();
+        QPixmap pixmap(imagePath);
 
-    QPixmap pixmap = obj->property("fullPixmap").value<QPixmap>();
+        if (!pixmap.isNull()) {
+            auto* scene = new QGraphicsScene();
+            scene->addPixmap(pixmap);
+            ui->CurrentGameLogo->setScene(scene);
+            ui->CurrentGameLogo->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
+        }
 
-    if (!pixmap.isNull()) {
-        auto* scene = new QGraphicsScene();
-        scene->addPixmap(pixmap);
-        ui->CurrentGameLogo->setScene(scene);
-        ui->CurrentGameLogo->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
+        ui->gameName->setText(gameName);
+        ui->gameDesc->setText(desc);
+
+        if (favorited) {
+            //ui->FavGameButton->setChecked(true);
+            //ui->FavGameButton->setIcon("Favorited")
+        }
     }
-
-    ui->CurrentGameInfo->clear();
-    ui->CurrentGameInfo->append("");
-
-    ui->gameName->setText(gameName);
-    ui->gameDesc->setText(desc);
-
-    ui->RemoveGameButton->show();
-    ui->CurrentGameInfo->show();
-    ui->CurrentGameLogo->show();
-    ui->PlayButton->show();
-    ui->FavGameButton->show();
 }
 
 void MainWindow::onPlayButtonClicked() {
@@ -154,6 +191,10 @@ void MainWindow::onMoreNewsButtonClicked() {
 void MainWindow::returnToMainUI() {
     sw->hide();
     ui->centralwidget->show();
+    clearGridLayout(libgrid);
+    clearGridLayout(favgrid);
+    loadGameLibrary(libgrid);
+    loadFavLibrary(favgrid);
 }
 
 void MainWindow::onRemoveButtonClicked() {
@@ -161,23 +202,12 @@ void MainWindow::onRemoveButtonClicked() {
     appId = 0;
     clearGridLayout(libgrid);
     loadGameLibrary(libgrid);
-    ui->CurrentGameInfo->hide();
-    ui->CurrentGameLogo->hide();
-    ui->PlayButton->hide();
-    ui->RemoveGameButton->hide();
-    ui->FavGameButton->hide();
+    ui->CurrentGame->hide();
 }
 
 void MainWindow::onFavButtonClicked() {
     gameLibrary->toggleFavorite(gameId.toInt());
     loadFavLibrary(favgrid);
-}
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-    delete gameLibrary;
-    delete sw;
 }
 
 void MainWindow::clearGridLayout(QGridLayout* grid) {
@@ -198,7 +228,7 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
 
     vector<Game> games = gameLibrary->getAllGames();
     int row = 0, col = 0;
-    const int maxCols = 4;
+    const int maxCols = sw->windowWidth / 120;
     for (const auto& game : games) {
         QPushButton* gameButton = new QPushButton(QString::fromStdString(game.name));
         gameButton->setProperty("gameId", static_cast<qulonglong>(game.id));
@@ -206,6 +236,7 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
         gameButton->setProperty("filePath", QString::fromStdString(game.directory));
         gameButton->setProperty("name", QString::fromStdString(game.name));
         gameButton->setProperty("desc", QString::fromStdString(game.description));
+        gameButton->setProperty("favorited", game.favorited);
 
         // load image
         QString imagePath = QString::fromStdString(game.imagePath);
@@ -217,7 +248,7 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
             gameButton->setIcon(QIcon(scaled));
             gameButton->setIconSize(scaled.size());
             gameButton->setText("");
-            gameButton->setProperty("fullPixmap", pixmap);
+            gameButton->setProperty("imagePath", imagePath);
         } else {
             // if image doesn't exist
             gameButton->setText(QString::fromStdString(game.name));
@@ -242,7 +273,7 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
 
     vector<Game> games = gameLibrary->getFavoriteGames();
     int row = 0, col = 0;
-    const int maxCols = 4;
+    const int maxCols = sw->windowWidth / 120;
     for (const auto& game : games) {
         QPushButton* gameButton = new QPushButton(QString::fromStdString(game.name));
         gameButton->setProperty("gameId", static_cast<qulonglong>(game.id));
@@ -250,6 +281,7 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
         gameButton->setProperty("filePath", QString::fromStdString(game.directory));
         gameButton->setProperty("name", QString::fromStdString(game.name));
         gameButton->setProperty("desc", QString::fromStdString(game.description));
+        gameButton->setProperty("favorited", game.favorited);
 
         // load image
         QString imagePath = QString::fromStdString(game.imagePath);
@@ -261,7 +293,7 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
             gameButton->setIcon(QIcon(scaled));
             gameButton->setIconSize(scaled.size());
             gameButton->setText("");
-            gameButton->setProperty("fullPixmap", pixmap);
+            gameButton->setProperty("imagePath", imagePath);
         } else {
             // if image doesn't exist
             gameButton->setText(QString::fromStdString(game.name));
@@ -277,3 +309,25 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
     }
 }
 
+void MainWindow::setGlobalStyle() {
+    QString tabStyle = R"(
+        QTabBar::tab {
+            background: palette(Button);
+            color: palette(ButtonText);
+            padding: 6px 12px;
+            margin: 2px;
+            border-radius: 6px;
+        }
+    )";
+
+    qApp->setStyleSheet(qApp->styleSheet() + tabStyle);
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+    delete gameLibrary;
+    delete sw;
+    delete nw;
+    delete manager;
+}
