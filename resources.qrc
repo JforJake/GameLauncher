@@ -4,5 +4,7 @@
         <file>res/XIcon.png</file>
         <file>res/SettingsIcon.png</file>
         <file>res/ImportIcon.png</file>
+        <file>res/Favorited.png</file>
+        <file>res/NotFavorited.png</file>
     </qresource>
 </RCC>

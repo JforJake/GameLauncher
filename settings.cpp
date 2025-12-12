@@ -147,7 +147,8 @@ void Settings::applySettings() {
     j["programWidth"] = ui->ProgramWidthBox->currentData().toInt();
     j["startup"] = ui->StartupBox->currentData().toInt();
 
-    std::ofstream file("settings.json");
+    QString appDir = QCoreApplication::applicationDirPath();
+    std::ofstream file((appDir + "/settings.json").toStdString());
     file << j.dump(4);   // Pretty-printed JSON
 }
 
@@ -232,14 +233,20 @@ void Settings::enableStartup() {
         "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
         0,
         KEY_SET_VALUE,
-        &hKey
-        );
+        &hKey);
 
     if (result == ERROR_SUCCESS) {
-        std::string appPath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath()).toStdString();
-        RegSetValueExA(hKey, "GameLauncher", 0, REG_SZ,
-                       (BYTE*)appPath.c_str(),
-                       appPath.size() + 1);
+        std::string appPath =
+            "\"" + QDir::toNativeSeparators(QCoreApplication::applicationFilePath()).toStdString() + "\"";
+
+        RegSetValueExA(
+            hKey,
+            "GameLauncher",
+            0,
+            REG_SZ,
+            reinterpret_cast<const BYTE*>(appPath.c_str()),
+            static_cast<DWORD>(appPath.size() + 1));
+
         RegCloseKey(hKey);
     }
 }

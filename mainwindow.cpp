@@ -25,6 +25,9 @@ MainWindow::MainWindow(QWidget *parent)
     nw = new NewsPage(this);
     nw->hide();
 
+    QString appDir = QCoreApplication::applicationDirPath();
+    std::string settingsPath = (appDir + "/settings.json").toStdString();
+
     sw->setColorSchemes();
     setWindowFlags(Qt::FramelessWindowHint);
     sw->currScreen = QGuiApplication::primaryScreen();
@@ -35,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     sw->windowWidth = 480;
     sw->windowHeight = sw->screenHeight;
 
-    std::ifstream file("settings.json");
+    std::ifstream file(settingsPath);
     if (file.is_open()) {
         file >> sw->j;
         auto& j = sw->j;
@@ -82,7 +85,7 @@ MainWindow::MainWindow(QWidget *parent)
     favgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     favgrid->setSpacing(10);
 
-    gameLibrary = new GameLibrary("games.db");
+    gameLibrary = new GameLibrary((appDir + "/games.db").toStdString());
 
     loadGameLibrary(libgrid);
     loadFavLibrary(favgrid);
@@ -93,11 +96,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->gameName->setText("");
     ui->gameDesc->setText("");
 
+    setNewsSection();
     setGlobalStyle();
     ui->SettingsButton->setIcon(QIcon(":/res/res/SettingsIcon.png"));
     ui->ImportButton->setIcon(QIcon(":/res/res/ImportIcon.png"));
     ui->MinimizeButton->setIcon(QIcon(":/res/res/MinimizeIcon.png"));
     ui->ExitButton->setIcon(QIcon(":/res/res/XIcon.png"));
+    ui->RemoveGameButton->setIcon(QIcon(":/res/res/XIcon.png"));
 
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
@@ -143,8 +148,9 @@ void MainWindow::onGameButtonClicked()
         ui->gameDesc->setText(desc);
 
         if (favorited) {
-            //ui->FavGameButton->setChecked(true);
-            //ui->FavGameButton->setIcon("Favorited")
+            ui->FavGameButton->setIcon(QIcon(":/res/res/Favorited.png"));
+        } else {
+            ui->FavGameButton->setIcon(QIcon(":/res/res/NotFavorited.png"));
         }
     }
 }
@@ -207,6 +213,11 @@ void MainWindow::onRemoveButtonClicked() {
 
 void MainWindow::onFavButtonClicked() {
     gameLibrary->toggleFavorite(gameId.toInt());
+    if (favorited) {
+        ui->FavGameButton->setIcon(QIcon(":/res/res/NotFavorited.png"));
+    } else {
+        ui->FavGameButton->setIcon(QIcon(":/res/res/Favorited.png"));
+    }
     loadFavLibrary(favgrid);
 }
 
@@ -307,6 +318,11 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
             row++;
         }
     }
+}
+
+void MainWindow::setNewsSection() {
+    ui->NewsLabel->setText(nw->getTopArticleName());
+    ui->NewsText->setText(nw->getTopArticleText());
 }
 
 void MainWindow::setGlobalStyle() {

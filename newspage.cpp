@@ -9,6 +9,7 @@
 #include <QRegularExpression>
 #include <QDesktopServices>
 #include <QXmlStreamReader>
+#include <QCoreApplication>
 
 NewsPage::NewsPage(QWidget *parent)
     : QWidget(parent)
@@ -25,8 +26,6 @@ NewsPage::NewsPage(QWidget *parent)
     loadGameNames();
 
     fetchNewsForAllGames();
-
-
 }
 
 
@@ -151,8 +150,23 @@ QWidget* NewsPage::createNewsCard(const QString &thumbnailUrl,
 }
 
 
+QString NewsPage::getTopArticleName() {
+    if (!sortedNewsItems.isEmpty())
+        return sortedNewsItems.first().title;
+    return "";
+}
 
+QString NewsPage::getTopArticleText() {
+    if (!sortedNewsItems.isEmpty())
+        return sortedNewsItems.first().contents;
+    return "";
+}
 
+QString NewsPage::getTopArticleThumbnail() {
+    if (!sortedNewsItems.isEmpty())
+        return sortedNewsItems.first().thumbnailUrl;
+    return "";
+}
 
 void NewsPage::addNewsCard(const QString &thumbnailUrl, const QString &title, const QString &description, const QString &source, const QString &articleUrl) {
     QWidget *card = createNewsCard(thumbnailUrl, title, description, source, articleUrl);
@@ -162,7 +176,8 @@ void NewsPage::addNewsCard(const QString &thumbnailUrl, const QString &title, co
 
 void NewsPage::loadGameNames() {
     gameNames.clear();
-    gameLibrary = new GameLibrary("games.db");
+    QString appDir = QCoreApplication::applicationDirPath();
+    gameLibrary = new GameLibrary((appDir + "/games.db").toStdString());
 
     gameNames = gameLibrary->returnNames();
     gameAppIds = gameLibrary->returnSteamAppIds();
@@ -204,7 +219,14 @@ void NewsPage::onNewsReceived(QNetworkReply *reply) {
 
     if (root.contains("appnews")) {
         QJsonObject appnews = root["appnews"].toObject();
+
+        if (!appnews.contains("newsitems") || !appnews["newsitems"].isArray()) {
+            reply->deleteLater();
+            return;
+        }
+
         QJsonArray newsItems = appnews["newsitems"].toArray();
+
 
         for (const QJsonValue &value : newsItems) {
             QJsonObject item = value.toObject();
@@ -215,7 +237,9 @@ void NewsPage::onNewsReceived(QNetworkReply *reply) {
             int timestamp = item["date"].toInt();
             QString date = QDateTime::fromSecsSinceEpoch(timestamp).toString("MMM dd, yyyy");
 
-            contents.remove(QRegularExpression("<[^>]*>"));
+            if (contents.isNull()) contents = "";
+                contents.replace(QRegularExpression("<[^>]*>"), "");
+
             if (contents.length() > 200) {
                 contents = contents.left(197) + "...";
             }
@@ -240,7 +264,6 @@ void NewsPage::onNewsReceived(QNetworkReply *reply) {
 
 
 void NewsPage::sortAndDisplayNews() {
-
     qint64 oneMonthAgoSecs = QDateTime::currentSecsSinceEpoch() - 30*24*60*60; // 30 days
     // within month
     std::vector<NewsItem> recentNews;
@@ -255,12 +278,17 @@ void NewsPage::sortAndDisplayNews() {
               });
     QLayoutItem *layoutItem;
     while ((layoutItem = newsLayout->takeAt(0)) != nullptr) {
-        delete layoutItem->widget();
+        QWidget *w = layoutItem->widget();
+        if (w) w->deleteLater();
         delete layoutItem;
     }
     for (const auto &item : recentNews) {
         addNewsCard(item.thumbnailUrl, item.title, item.contents, item.source, item.url);
     }
+
+    sortedNewsItems.clear();
+    for (const auto &item : recentNews)
+        sortedNewsItems.append(item);
 }
 
 

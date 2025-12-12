@@ -9,13 +9,18 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QDir>
+#include <QCoreApplication>
 
 SteamFetcher::SteamFetcher() {}
 
 GameMetadata SteamFetcher::fetchBySteamId(int steamAppId)
 {
     GameMetadata result;
-    QDir().mkpath("covers");
+
+
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString coverDir = appDir + "/covers";
+    QDir().mkpath(coverDir);
 
     QNetworkAccessManager manager;
     QString url = QString("https://store.steampowered.com/api/appdetails?appids=%1").arg(steamAppId);
@@ -43,7 +48,7 @@ GameMetadata SteamFetcher::fetchBySteamId(int steamAppId)
 
             if (imgReply->error() == QNetworkReply::NoError) {
                 QString safeName = QString::fromStdString(result.name).replace(" ", "_");
-                QString savePath = QString("covers/%1.jpg").arg(safeName);
+                QString savePath = QString(coverDir + "/%1.jpg").arg(safeName);
                 QFile file(savePath);
                 if (file.open(QIODevice::WriteOnly)) {
                     file.write(imgReply->readAll());

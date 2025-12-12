@@ -55,6 +55,7 @@ private:
     void clearGridLayout(QGridLayout* grid);
     void loadGameLibrary(QGridLayout* grid);
     void loadFavLibrary(QGridLayout* grid);
+    void setNewsSection();
     QGridLayout* libgrid; // grid to display all games
     QGridLayout* favgrid; // grid to display games
 };

@@ -41,6 +41,9 @@ public:
                     const QString &description,
                     const QString &source,
                     const QString &articleUrl);
+    QString getTopArticleName();
+    QString getTopArticleText();
+    QString getTopArticleThumbnail();
     ~NewsPage();
 
 private:
@@ -60,6 +63,8 @@ private:
     GameLibrary* gameLibrary;
     QNetworkAccessManager* networkManager;
     QList<NewsItem> allNewsItems;
+    QList<NewsItem> sortedNewsItems;
+
 
 
 
