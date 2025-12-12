@@ -10,6 +10,7 @@
 #include "newspage.h"
 #include "gamelibrary.h"
 #include "wizard.h"
+#include "newsfetcher.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -51,6 +52,7 @@ private:
     bool favorited;
     bool currGameSectionHidden;
     GameLibrary* gameLibrary;
+    NewsFetcher* newsFetcher;
     QNetworkAccessManager* manager;
     void clearGridLayout(QGridLayout* grid);
     void loadGameLibrary(QGridLayout* grid);

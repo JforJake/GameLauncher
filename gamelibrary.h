@@ -27,12 +27,12 @@ public:
     void addSteamGame(long long appId, const std::string& name, const std::string& directory);
     std::vector<Game> getAllGames();
     std::vector<Game> getFavoriteGames();
+    QStringList returnNames();
+    QStringList returnSteamAppIds();
     bool launchGameById(const std::string& appId);
     bool launchGameByPath(const std::string& filePath);
     void removeGameById(const int id);
     void toggleFavorite(const int id);
-    QStringList returnNames();
-    QStringList returnSteamAppIds();
 
 private:
     SQLite::Database db;

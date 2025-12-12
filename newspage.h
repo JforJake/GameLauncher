@@ -6,6 +6,7 @@
 #include <qnetworkaccessmanager>
 #include <qscrollarea>
 #include "gamelibrary.h"
+#include "newsfetcher.h"
 
 namespace Ui {
 class NewsPage;
@@ -29,7 +30,7 @@ class NewsPage : public QWidget
 
 
 public:
-    explicit NewsPage(QWidget *parent = nullptr);
+    explicit NewsPage(NewsFetcher* mainNewsFetch, QWidget *parent = nullptr);
     void setupNewsDisplay();
     QWidget* createNewsCard(const QString &thumbnailUrl,
                             const QString &title,
@@ -41,29 +42,17 @@ public:
                     const QString &description,
                     const QString &source,
                     const QString &articleUrl);
-    QString getTopArticleName();
-    QString getTopArticleText();
-    QString getTopArticleThumbnail();
     ~NewsPage();
 
 private:
     Ui::NewsPage *ui;
     MainWindow *mw = nullptr;
     void onBackToMenuButtonClicked();
-    void loadGameNames();
-    void fetchNewsForAllGames();
-    void fetchSteamNews(QStringList AppIds);
-    void onNewsReceived(QNetworkReply *reply);
-    void sortAndDisplayNews();
+    void displayNews();
     QScrollArea *scrollArea;
     QWidget *newsContainer;
     QVBoxLayout *newsLayout;
-    QStringList gameNames;
-    QStringList gameAppIds;
-    GameLibrary* gameLibrary;
-    QNetworkAccessManager* networkManager;
-    QList<NewsItem> allNewsItems;
-    QList<NewsItem> sortedNewsItems;
+    NewsFetcher* newsFetcher;
 
 
 

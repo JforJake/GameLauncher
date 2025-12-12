@@ -22,7 +22,10 @@ MainWindow::MainWindow(QWidget *parent)
     sw = new Settings(this);
     sw->hide();
 
-    nw = new NewsPage(this);
+
+    newsFetcher = new NewsFetcher(this);
+
+    nw = new NewsPage(newsFetcher, this);
     nw->hide();
 
     QString appDir = QCoreApplication::applicationDirPath();
@@ -75,6 +78,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     manager = new QNetworkAccessManager(this);
 
+
     QWidget* libContent = ui->LibraryScrollArea->widget();
     libgrid = new QGridLayout(libContent);
     libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
@@ -87,6 +91,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     gameLibrary = new GameLibrary((appDir + "/games.db").toStdString());
 
+    connect(newsFetcher, &NewsFetcher::newsReady, this, &MainWindow::setNewsSection);
+    newsFetcher->fetchAllNews();
+
     loadGameLibrary(libgrid);
     loadFavLibrary(favgrid);
 
@@ -96,7 +103,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->gameName->setText("");
     ui->gameDesc->setText("");
 
-    setNewsSection();
+   // setNewsSection();
     setGlobalStyle();
     ui->SettingsButton->setIcon(QIcon(":/res/res/SettingsIcon.png"));
     ui->ImportButton->setIcon(QIcon(":/res/res/ImportIcon.png"));
@@ -321,8 +328,8 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
 }
 
 void MainWindow::setNewsSection() {
-    ui->NewsLabel->setText(nw->getTopArticleName());
-    ui->NewsText->setText(nw->getTopArticleText());
+    ui->NewsLabel->setText(newsFetcher->getTopArticleName());
+    ui->NewsText->setText(newsFetcher->getTopArticleText());
 }
 
 void MainWindow::setGlobalStyle() {

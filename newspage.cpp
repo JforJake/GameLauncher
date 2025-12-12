@@ -11,23 +11,24 @@
 #include <QXmlStreamReader>
 #include <QCoreApplication>
 
-NewsPage::NewsPage(QWidget *parent)
+NewsPage::NewsPage(NewsFetcher *mainNewsFetch, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::NewsPage)
+    , newsFetcher(mainNewsFetch)
 {
     ui->setupUi(this);
     mw = qobject_cast<MainWindow*>(parent);
     connect(ui->BackToMenuButton, &QPushButton::clicked, this, &NewsPage::onBackToMenuButtonClicked);
 
-    networkManager = new QNetworkAccessManager(this);
-    connect(networkManager, &QNetworkAccessManager::finished, this, &NewsPage::onNewsReceived);
-
     setupNewsDisplay();
-    loadGameNames();
+    if (newsFetcher) {
+        connect(newsFetcher, &NewsFetcher::newsReady, this, &NewsPage::displayNews);
 
-    fetchNewsForAllGames();
+        if (!newsFetcher->getAllNewsItems().isEmpty()) {
+            displayNews();
+        }
+    }
 }
-
 
 void NewsPage::setupNewsDisplay() {
     scrollArea = ui->scrollArea;
@@ -41,6 +42,20 @@ void NewsPage::setupNewsDisplay() {
     newsLayout->setContentsMargins(10, 10, 10, 10);
 
     scrollArea->setWidget(newsContainer);
+}
+
+void NewsPage::displayNews() {
+    auto allNewsItems = newsFetcher->getAllNewsItems();
+    for (const auto &item : allNewsItems) {
+        addNewsCard(item.thumbnailUrl, item.title, item.contents, item.source, item.url);
+    }
+}
+
+
+
+void NewsPage::addNewsCard(const QString &thumbnailUrl, const QString &title, const QString &description, const QString &source, const QString &articleUrl) {
+    QWidget *card = createNewsCard(thumbnailUrl, title, description, source, articleUrl);
+    newsLayout->addWidget(card);
 }
 
 QWidget* NewsPage::createNewsCard(const QString &thumbnailUrl,
@@ -148,149 +163,6 @@ QWidget* NewsPage::createNewsCard(const QString &thumbnailUrl,
 
     return card;
 }
-
-
-QString NewsPage::getTopArticleName() {
-    if (!sortedNewsItems.isEmpty())
-        return sortedNewsItems.first().title;
-    return "";
-}
-
-QString NewsPage::getTopArticleText() {
-    if (!sortedNewsItems.isEmpty())
-        return sortedNewsItems.first().contents;
-    return "";
-}
-
-QString NewsPage::getTopArticleThumbnail() {
-    if (!sortedNewsItems.isEmpty())
-        return sortedNewsItems.first().thumbnailUrl;
-    return "";
-}
-
-void NewsPage::addNewsCard(const QString &thumbnailUrl, const QString &title, const QString &description, const QString &source, const QString &articleUrl) {
-    QWidget *card = createNewsCard(thumbnailUrl, title, description, source, articleUrl);
-    newsLayout->addWidget(card);
-}
-
-
-void NewsPage::loadGameNames() {
-    gameNames.clear();
-    QString appDir = QCoreApplication::applicationDirPath();
-    gameLibrary = new GameLibrary((appDir + "/games.db").toStdString());
-
-    gameNames = gameLibrary->returnNames();
-    gameAppIds = gameLibrary->returnSteamAppIds();
-}
-
-
-
-void NewsPage::fetchNewsForAllGames() {
-    fetchSteamNews(gameAppIds);
-}
-
-void NewsPage::fetchSteamNews(QStringList AppIds) {
-    for (const QString& appId : AppIds) {
-        QUrl url("https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/");
-        QUrlQuery query;
-        query.addQueryItem("appid", appId);
-        query.addQueryItem("count", "2");
-        query.addQueryItem("maxlength", "85");
-        url.setQuery(query);
-
-        QNetworkRequest request(url);
-        request.setAttribute(QNetworkRequest::User, appId);
-
-        networkManager->get(request);
-    }
-}
-
-void NewsPage::onNewsReceived(QNetworkReply *reply) {
-    if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "Network error:" << reply->errorString();
-        reply->deleteLater();
-        return;
-    }
-
-    QString appId = reply->request().attribute(QNetworkRequest::User).toString();
-    QByteArray data = reply->readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-    QJsonObject root = doc.object();
-
-    if (root.contains("appnews")) {
-        QJsonObject appnews = root["appnews"].toObject();
-
-        if (!appnews.contains("newsitems") || !appnews["newsitems"].isArray()) {
-            reply->deleteLater();
-            return;
-        }
-
-        QJsonArray newsItems = appnews["newsitems"].toArray();
-
-
-        for (const QJsonValue &value : newsItems) {
-            QJsonObject item = value.toObject();
-
-            QString title = item["title"].toString();
-            QString url = item["url"].toString();
-            QString contents = item["contents"].toString();
-            int timestamp = item["date"].toInt();
-            QString date = QDateTime::fromSecsSinceEpoch(timestamp).toString("MMM dd, yyyy");
-
-            if (contents.isNull()) contents = "";
-                contents.replace(QRegularExpression("<[^>]*>"), "");
-
-            if (contents.length() > 200) {
-                contents = contents.left(197) + "...";
-            }
-
-            QString thumbnailUrl = QString("https://cdn.cloudflare.steamstatic.com/steam/apps/%1/header.jpg").arg(appId);
-
-            // Store news item with timestamp
-            NewsItem newsItem;
-            newsItem.thumbnailUrl = thumbnailUrl;
-            newsItem.title = title;
-            newsItem.contents = contents;
-            newsItem.source = "Steam";
-            newsItem.url = url;
-            newsItem.timestamp = timestamp;
-
-            allNewsItems.append(newsItem);
-        }
-        sortAndDisplayNews();
-    }
-    reply->deleteLater();
-}
-
-
-void NewsPage::sortAndDisplayNews() {
-    qint64 oneMonthAgoSecs = QDateTime::currentSecsSinceEpoch() - 30*24*60*60; // 30 days
-    // within month
-    std::vector<NewsItem> recentNews;
-    for (const auto &item : allNewsItems) {
-        if (item.timestamp >= oneMonthAgoSecs)
-            recentNews.push_back(item);
-    }
-
-    std::sort(recentNews.begin(), recentNews.end(),
-              [](const NewsItem &a, const NewsItem &b) {
-                  return a.timestamp > b.timestamp;
-              });
-    QLayoutItem *layoutItem;
-    while ((layoutItem = newsLayout->takeAt(0)) != nullptr) {
-        QWidget *w = layoutItem->widget();
-        if (w) w->deleteLater();
-        delete layoutItem;
-    }
-    for (const auto &item : recentNews) {
-        addNewsCard(item.thumbnailUrl, item.title, item.contents, item.source, item.url);
-    }
-
-    sortedNewsItems.clear();
-    for (const auto &item : recentNews)
-        sortedNewsItems.append(item);
-}
-
 
 void NewsPage::onBackToMenuButtonClicked() {
     if (mw) {
