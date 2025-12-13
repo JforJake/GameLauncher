@@ -3,7 +3,9 @@ name: Windows Release Build
 on:
   push:
     tags:
-      - "v*.*.*"   # Example: v0.1.0
+      - 'v*.*.*'
+  workflow_dispatch:
+
 
 jobs:
   build-windows:
