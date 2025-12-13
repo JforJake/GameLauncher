@@ -20,6 +20,11 @@ set(PROJECT_SOURCES
         mainwindow.ui
 )
 
+# Fix SQLiteCpp missing cstdint on MSVC
+if (MSVC)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
 include(FetchContent)
 FetchContent_Declare(
     SQLiteCpp
@@ -33,6 +38,7 @@ set(SQLITECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(SQLITECPP_INTERNAL_SQLITE ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(SQLiteCpp)
 
+target_compile_features(SQLiteCpp PUBLIC cxx_std_17)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SpatialLauncher
@@ -70,7 +76,14 @@ else()
     endif()
 endif()
 
-target_link_libraries(SpatialLauncher PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network SQLiteCpp)
+target_link_libraries(
+    GameLauncher
+    PRIVATE
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Network
+        SQLiteCpp
+)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QCoreApplication>
 #include <QUrlQuery>
+#include <QJsonDocument>
 
 // Class to fetch game news articles
 
