@@ -35,9 +35,9 @@ jobs:
         run: |
           mkdir release
           xcopy build\Release\* release\ /E /I
-          powershell Compress-Archive release GameLauncher-Windows.zip
+          powershell Compress-Archive release SpatialLauncher-Windows.zip
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
-          files: GameLauncher-Windows.zip
+          files: SpatialLauncher-Windows.zip
