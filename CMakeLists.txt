@@ -77,7 +77,7 @@ else()
 endif()
 
 target_link_libraries(
-    GameLauncher
+    SpatialLauncher
     PRIVATE
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Widgets
