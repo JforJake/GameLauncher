@@ -2,8 +2,8 @@ name: Windows Release Build
 
 on:
   push:
-#    tags:
-#      - 'v*.*.*'
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
           dir build\Release
 
 
-      #- name: Upload Release
-      #  uses: softprops/action-gh-release@v2
-      #  with:
-      #    files: SpatialLauncher-Windows.zip
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SpatialLauncher-Windows.zip
