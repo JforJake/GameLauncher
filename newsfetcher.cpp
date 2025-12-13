@@ -6,15 +6,18 @@
 #include <QCoreApplication>
 #include <QUrlQuery>
 
+// Class to fetch game news articles
+
 NewsFetcher::NewsFetcher(QObject *parent) {
     networkManager = new QNetworkAccessManager(parent);
+    // connection to notify the displays to appear after the news is fetched
     connect(networkManager, &QNetworkAccessManager::finished, this, &NewsFetcher::onNewsReceived);
 
     loadGameNames();
 }
 
 
-
+// loads the game Names and SteamAppIds from the database to use for the fetching
 void NewsFetcher::loadGameNames() {
     gameNames.clear();
     QString appDir = QCoreApplication::applicationDirPath();
@@ -26,25 +29,28 @@ void NewsFetcher::loadGameNames() {
 
 
 
-// Gets
+// Gets the Top Article Name
 QString NewsFetcher::getTopArticleName() {
     if (!allNewsItems.isEmpty())
         return allNewsItems.first().title;
     return "";
 }
 
+// Gets the Top Article Description
 QString NewsFetcher::getTopArticleText() {
     if (!allNewsItems.isEmpty())
         return allNewsItems.first().contents;
     return "";
 }
 
+// Gets the Top Article Thumbnail
 QString NewsFetcher::getTopArticleThumbnail() {
     if (!allNewsItems.isEmpty())
         return allNewsItems.first().thumbnailUrl;
     return "";
 }
 
+// returns the entire list of News Articles
 QList<NewsItem> NewsFetcher::getAllNewsItems() {
     return allNewsItems;
 }
@@ -54,13 +60,14 @@ void NewsFetcher::fetchAllNews() {
     fetchSteamNews(gameAppIds);
 }
 
+// Fetches news about a game using the steam web api
 void NewsFetcher::fetchSteamNews(QStringList AppIds) {
-    pendingRequests = 0;
+    pendingRequests = 0; // to track amount of requests to do
     for (const QString& appId : AppIds) {
         if (appId.isEmpty()) {
             continue;
         }
-
+        // Requests news based on its SteamAppId. 2 articles, with its description capped at 300 characters
         QUrl url("https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/");
         QUrlQuery query;
         query.addQueryItem("appid", appId);
@@ -69,16 +76,19 @@ void NewsFetcher::fetchSteamNews(QStringList AppIds) {
         url.setQuery(query);
 
         QNetworkRequest request(url);
+        // gives the request an attribute to identify once its returned
         request.setAttribute(QNetworkRequest::User, appId);
 
         networkManager->get(request);
         pendingRequests++;
     }
+    // once all the requests are finished, it updates the connection
     if (pendingRequests == 0) {
         emit newsReady();
     }
 }
 
+// sorts the news to be within 30 days and sorts them by date from earliest to latest
 void NewsFetcher::sortNews() {
     qint64 oneMonthAgoSecs = QDateTime::currentSecsSinceEpoch() - 30*24*60*60; // 30 days
     for (int i = allNewsItems.size() - 1; i >= 0; --i) {    // removes any older than 30 days
@@ -93,13 +103,16 @@ void NewsFetcher::sortNews() {
               });
 }
 
+// once it recieves the news article it makes it a newsItem and adds it to a list
 void NewsFetcher::onNewsReceived(QNetworkReply *reply) {
+    // if the reply is with error
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << "Network error:" << reply->errorString();
         reply->deleteLater();
         return;
     }
 
+    // gets the data from the reply
     QString appId = reply->request().attribute(QNetworkRequest::User).toString();
     QByteArray data = reply->readAll();
     QJsonDocument doc = QJsonDocument::fromJson(data);
@@ -115,7 +128,7 @@ void NewsFetcher::onNewsReceived(QNetworkReply *reply) {
 
         QJsonArray newsItems = appnews["newsitems"].toArray();
 
-
+        //  Formats the data from the json to the NewsItem
         for (const QJsonValue &value : newsItems) {
             QJsonObject item = value.toObject();
 
@@ -142,6 +155,7 @@ void NewsFetcher::onNewsReceived(QNetworkReply *reply) {
 
             allNewsItems.append(newsItem);
         }
+        // subtracts every time a request is complete and sorts it
         pendingRequests--;
         if (pendingRequests <= 0) {
             sortNews();

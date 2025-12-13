@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    //sets up the UI files
     ui->setupUi(this);
 
     sw = new Settings(this);
@@ -28,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
     nw = new NewsPage(newsFetcher, this);
     nw->hide();
 
+    // Finds the applications current directory
     QString appDir = QCoreApplication::applicationDirPath();
     std::string settingsPath = (appDir + "/settings.json").toStdString();
 
@@ -41,6 +43,7 @@ MainWindow::MainWindow(QWidget *parent)
     sw->windowWidth = 480;
     sw->windowHeight = sw->screenHeight;
 
+    // loads settings from the json
     std::ifstream file(settingsPath);
     if (file.is_open()) {
         file >> sw->j;
@@ -79,23 +82,23 @@ MainWindow::MainWindow(QWidget *parent)
 
     manager = new QNetworkAccessManager(this);
 
-
+    // Grid for the All library
     QWidget* libContent = ui->LibraryScrollArea->widget();
     libgrid = new QGridLayout(libContent);
     libgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     libgrid->setSpacing(10);
-
+    // Grid for the Fav library
     QWidget* favContent = ui->FavoritesScrollArea->widget();
     favgrid = new QGridLayout(favContent);
     favgrid->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     favgrid->setSpacing(10);
 
-    gameLibrary = new GameLibrary((appDir + "/games.db").toStdString());
+    gameLibrary = new GameLibrary((appDir + "/games.db").toStdString()); // loads database
 
-    connect(newsFetcher, &NewsFetcher::newsReady, this, &MainWindow::setNewsSection);
+    connect(newsFetcher, &NewsFetcher::newsReady, this, &MainWindow::setNewsSection); // puts news on the panel once it is ready
     newsFetcher->fetchAllNews();
 
-
+    // loads the libraries
     loadGameLibrary(libgrid);
     loadFavLibrary(favgrid);
 
@@ -113,6 +116,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->ExitButton->setIcon(QIcon(":/res/res/XIcon.png"));
     ui->RemoveGameButton->setIcon(QIcon(":/res/res/XIcon.png"));
 
+    // sets the scroll bars
     ui->NewsText->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->NewsText->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->LibraryScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -120,6 +124,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->GameNewsLogo->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->GameNewsLogo->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
+    // sets the line widths
     ui->GameNewsLogo->setFrameShape(QFrame::NoFrame);
     ui->GameNewsLogo->setLineWidth(0);
     ui->GameNewsLogo->setMidLineWidth(0);
@@ -136,6 +141,7 @@ MainWindow::MainWindow(QWidget *parent)
         "QGraphicsView::viewport { background: transparent; }"
     );
 
+    // Connections for the buttons
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
     connect(ui->PlayButton, &QPushButton::clicked, this, &MainWindow::onPlayButtonClicked);
@@ -146,6 +152,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->FavGameButton, &QPushButton::clicked, this, &MainWindow::onFavButtonClicked);
 }
 
+// Once a button is clicked,
+// The mini menu appears and the library shrinks and vice versa if the game is clicked again.
 void MainWindow::onGameButtonClicked()
 {
 
@@ -196,6 +204,7 @@ void MainWindow::onGameButtonClicked()
     }
 }
 
+// Launches the game
 void MainWindow::onPlayButtonClicked() {
     qulonglong steamAppId = appId.toULongLong();
     if (steamAppId > 0) {
@@ -207,14 +216,17 @@ void MainWindow::onPlayButtonClicked() {
     }
 }
 
+// Closes the window
 void MainWindow::onExitButtonClicked() {
     QCoreApplication::quit();
 }
 
+// Minimizes the window
 void MainWindow::onMinimizeButtonClicked() {
     this->showMinimized();
 }
 
+// Opens the wizard to import (a) game/games
 void MainWindow::onImportButtonClicked() {
     Wizard *wizard = new Wizard(gameLibrary, this);
     wizard->setAttribute(Qt::WA_DeleteOnClose);
@@ -222,6 +234,7 @@ void MainWindow::onImportButtonClicked() {
     wizard->show();
 }
 
+// Opens the settings Menu
 void MainWindow::onSettingsButtonClicked() {
     ui->centralwidget->hide();
     sw->show();
@@ -229,12 +242,14 @@ void MainWindow::onSettingsButtonClicked() {
     sw->setCurrIndex();
 }
 
+// Opens the news Menu
 void MainWindow::onMoreNewsButtonClicked() {
     ui->centralwidget->hide();
     nw->show();
     nw->resize(sw->windowWidth, sw->windowHeight);
 }
 
+// Returns to the main menu
 void MainWindow::returnToMainUI() {
     sw->hide();
     ui->centralwidget->show();
@@ -245,6 +260,7 @@ void MainWindow::returnToMainUI() {
     setNewsSection();
 }
 
+// Removes the selected game from the database
 void MainWindow::onRemoveButtonClicked() {
     gameLibrary->removeGameById(gameId.toInt());
     appId = 0;
@@ -253,6 +269,7 @@ void MainWindow::onRemoveButtonClicked() {
     ui->CurrentGame->hide();
 }
 
+// Favorites a game and adds it to the Fav tab
 void MainWindow::onFavButtonClicked() {
     gameLibrary->toggleFavorite(gameId.toInt());
     if (favorited) {
@@ -263,6 +280,7 @@ void MainWindow::onFavButtonClicked() {
     loadFavLibrary(favgrid);
 }
 
+// Clears a library in order to refresh
 void MainWindow::clearGridLayout(QGridLayout* grid) {
     while (QLayoutItem* item = grid->takeAt(0)) {
         if (QWidget* w = item->widget()) {
@@ -272,6 +290,7 @@ void MainWindow::clearGridLayout(QGridLayout* grid) {
     }
 }
 
+// Loads the All library into the grid
 void MainWindow::loadGameLibrary(QGridLayout* grid)
 {
     while (QLayoutItem *item = grid->takeAt(0)) {
@@ -282,6 +301,7 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
     vector<Game> games = gameLibrary->getAllGames();
     int row = 0, col = 0;
     const int maxCols = sw->windowWidth / 120;
+    // cycles through the vector of games to add its property to the buttons in the library tab
     for (const auto& game : games) {
         QPushButton* gameButton = new QPushButton(QString::fromStdString(game.name));
         gameButton->setProperty("gameId", static_cast<qulonglong>(game.id));
@@ -295,6 +315,7 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
         QString imagePath = QString::fromStdString(game.imagePath);
         QPixmap pixmap(imagePath);
 
+        // scales the image to the object size from local
         if (!pixmap.isNull()) {
             QPixmap scaled = pixmap.scaledToWidth(88, Qt::SmoothTransformation);
             gameButton->setFixedSize(scaled.size());
@@ -317,6 +338,7 @@ void MainWindow::loadGameLibrary(QGridLayout* grid)
     }
 }
 
+// Loads the fav library into the grid
 void MainWindow::loadFavLibrary(QGridLayout* grid)
 {
     while (QLayoutItem *item = grid->takeAt(0)) {
@@ -327,6 +349,8 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
     vector<Game> games = gameLibrary->getFavoriteGames();
     int row = 0, col = 0;
     const int maxCols = sw->windowWidth / 120;
+
+    // cycles through the vector of games to add its property to the buttons in the library tab
     for (const auto& game : games) {
         QPushButton* gameButton = new QPushButton(QString::fromStdString(game.name));
         gameButton->setProperty("gameId", static_cast<qulonglong>(game.id));
@@ -340,6 +364,7 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
         QString imagePath = QString::fromStdString(game.imagePath);
         QPixmap pixmap(imagePath);
 
+        // scales the image to the object size from local
         if (!pixmap.isNull()) {
             QPixmap scaled = pixmap.scaledToWidth(88, Qt::SmoothTransformation);
             gameButton->setFixedSize(scaled.size());
@@ -362,7 +387,9 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
     }
 }
 
+// sets the news section from the first item in the fetched news
 void MainWindow::setNewsSection() {
+    // formats the article title
     QString newsLabel = newsFetcher->getTopArticleName();
     if (sw->windowWidth == 360 && newsLabel.length() > 13) {
         ui->NewsLabel->setText(newsLabel.left(10) + "...");
@@ -375,7 +402,7 @@ void MainWindow::setNewsSection() {
     } else {
         ui->NewsLabel->setText(newsLabel);
     }
-
+    // formats the article description
     QString newsText = newsFetcher->getTopArticleText();
     if (sw->windowWidth == 360 && newsText.length() > 150) {
         ui->NewsText->setText(newsText.left(147) + "...");
@@ -389,6 +416,7 @@ void MainWindow::setNewsSection() {
         ui->NewsText->setText(newsText);
     }
 
+    // makes sure news articles exist
     auto items = newsFetcher->getAllNewsItems();
     if (items.isEmpty())
         return;
@@ -418,6 +446,7 @@ void MainWindow::setNewsSection() {
     roundLeftCorners(ui->GameNewsLogo, 12);
 }
 
+// Sets the style for the window
 void MainWindow::setGlobalStyle() {
     QString tabStyle = R"(
         QTabBar::tab {
@@ -443,6 +472,7 @@ void MainWindow::setGlobalStyle() {
     qApp->setStyleSheet(qApp->styleSheet() + tabStyle);
 }
 
+// adds round corners
 void MainWindow::roundLeftCorners(QGraphicsView *view, int radius)
 {
     QWidget *vp = view->viewport();
@@ -461,7 +491,7 @@ void MainWindow::roundLeftCorners(QGraphicsView *view, int radius)
     vp->setMask(mask);
 }
 
-
+// deletes everything after its done
 MainWindow::~MainWindow()
 {
     delete ui;

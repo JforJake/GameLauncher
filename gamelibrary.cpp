@@ -3,11 +3,17 @@
 #include <windows.h>
 #include <QProcess>
 
+// Class to hold the game database utility
+// Creates, adds, returns, and deletes from the table
+
+
 GameLibrary::GameLibrary(const std::string& dbPath)
     : db(dbPath, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE)
 {
     createTables();
 }
+
+// Creates the table if it doesnt exist
 void GameLibrary::createTables()
 {
     db.exec("CREATE TABLE IF NOT EXISTS games ("
@@ -22,6 +28,7 @@ void GameLibrary::createTables()
             "favorited INTEGER DEFAULT 0)");
 }
 
+// Adds a game via the manual import method
 void GameLibrary::addGame(const std::string& name, const std::string& directory) {
     GameMetadata metadata = steamFetcher.fetchGameData(name);
 
@@ -33,7 +40,7 @@ void GameLibrary::addGame(const std::string& name, const std::string& directory)
     query.exec();
 }
 
-// Adds the game to the database
+// Adds the game via the automatic steam import method
 void GameLibrary::addSteamGame(long long appId, const std::string& name, const std::string& directory) {
 
     GameMetadata metadata = steamFetcher.fetchBySteamId(appId);
@@ -67,13 +74,14 @@ std::vector<Game> GameLibrary::getAllGames() {
     return games;
 }
 
+// removes a game via its unique id
 void GameLibrary::removeGameById(int id) {
     SQLite::Statement query(db, "DELETE FROM games WHERE id = ?");
     query.bind(1, id);
     query.exec();
 }
 
-// launches a steam game, uses appId to launch. will do from .exe later
+// launches a steam game, uses appId to launch
 bool GameLibrary::launchGameById(const std::string& appId) {
     if (appId.empty()) return false;
     std::string url = "steam://rungameid/" + appId;
@@ -81,23 +89,25 @@ bool GameLibrary::launchGameById(const std::string& appId) {
     return true;
 }
 
+// launches a manually imported game via its path
 bool GameLibrary::launchGameByPath(const std::string& filePath) {
     if (filePath.empty()) return false;
     return QProcess::startDetached(QString::fromStdString(filePath));
 }
 
+// Toggles the favorited from 1 to 0: 1 is favorited, 0 is unfavorited
 void GameLibrary::toggleFavorite(const int id) {
     SQLite::Statement query(db, "UPDATE games SET favorited = 1 - favorited WHERE id = ?");
     query.bind(1, id);
     query.exec();
 }
 
-
+// Returns favorited games
 std::vector<Game> GameLibrary::getFavoriteGames() {
     std::vector<Game> games;
     SQLite::Statement query(db, "SELECT id, name, description, directory, image_path, steam_appid, playtime, last_opened FROM games WHERE favorited = 1");
     while (query.executeStep()) {
-        Game game;
+        Game game; // Assigns the database information to its own struct
         game.id = query.getColumn(0).getInt();
         game.name = query.getColumn(1).getString();
         game.description = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
@@ -112,6 +122,7 @@ std::vector<Game> GameLibrary::getFavoriteGames() {
     return games;
 }
 
+// Returns every game name
 QStringList GameLibrary::returnNames() {
     QStringList gameNames;
     SQLite::Statement query(db, "SELECT name FROM games");
@@ -123,6 +134,7 @@ QStringList GameLibrary::returnNames() {
     return gameNames;
 };
 
+// Returns every SteamAppId
 QStringList GameLibrary::returnSteamAppIds() {
     QStringList gameSteamAppIds;
     SQLite::Statement query(db, "SELECT steam_appid FROM games");
@@ -134,6 +146,7 @@ QStringList GameLibrary::returnSteamAppIds() {
     return gameSteamAppIds;
 };
 
+// Returns if a game is favorited
 bool GameLibrary::isFavorited(int id) {
     SQLite::Statement query(db, "SELECT favorited FROM games WHERE id = ?");
     query.bind(1, id);
@@ -142,6 +155,7 @@ bool GameLibrary::isFavorited(int id) {
     return false;
 }
 
+// Gets the local image path via its appId
 QString GameLibrary::getImagePathForSteamApp(qulonglong appId)
 {
     SQLite::Statement query(

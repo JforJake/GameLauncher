@@ -151,6 +151,7 @@ void Settings::applySettings() {
     file << j.dump(4);   // Pretty-printed JSON
 }
 
+// moves the application to the side of the screen
 void Settings::moveApplication(int screenIndex, int side) {
     if (screenIndex < 0 || screenIndex >= screens.size()) return;
 
@@ -182,6 +183,7 @@ void Settings::moveApplication(int screenIndex, int side) {
     currSide = side;
 }
 
+// applies the color scheme to the windows
 void Settings::setColorSchemes() {
     // Dark Mode
     // Main window + base background
@@ -230,6 +232,7 @@ void Settings::setColorSchemes() {
     light.setColor(QPalette::Highlight, QColor(85, 0, 255));
 }
 
+// allows the application to start on boot
 void Settings::enableStartup() {
     HKEY hKey;
     LONG result = RegOpenKeyExA(
@@ -255,6 +258,7 @@ void Settings::enableStartup() {
     }
 }
 
+// disallows the application to start on boot
 void Settings::disableStartup() {
     HKEY hKey;
     LONG result = RegOpenKeyExA(

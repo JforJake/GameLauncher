@@ -11,8 +11,11 @@
 #include <QDir>
 #include <QCoreApplication>
 
+// Class to fetch data on a game based on its steamId or by its game name
+
 SteamFetcher::SteamFetcher() {}
 
+// Fetches data by steamAppId
 GameMetadata SteamFetcher::fetchBySteamId(int steamAppId)
 {
     GameMetadata result;
@@ -35,6 +38,7 @@ GameMetadata SteamFetcher::fetchBySteamId(int steamAppId)
         QJsonObject appData = doc.object()[QString::number(steamAppId)].toObject();
 
         if (appData["success"].toBool()) {
+            // fetches data from the json and saves it to GameMetadata
             QJsonObject data = appData["data"].toObject();
 
             result.name = data["name"].toString().toStdString();
@@ -47,6 +51,7 @@ GameMetadata SteamFetcher::fetchBySteamId(int steamAppId)
             loop.exec();
 
             if (imgReply->error() == QNetworkReply::NoError) {
+                // fetches the image
                 QString safeName = QString::fromStdString(result.name).replace(" ", "_");
                 QString savePath = QString(coverDir + "/%1.jpg").arg(safeName);
                 QFile file(savePath);
@@ -64,6 +69,7 @@ GameMetadata SteamFetcher::fetchBySteamId(int steamAppId)
     return result;
 }
 
+// Fetches data by its name
 GameMetadata SteamFetcher::fetchGameData(const std::string &gameName)
 {
     QNetworkAccessManager manager;
@@ -78,7 +84,8 @@ GameMetadata SteamFetcher::fetchGameData(const std::string &gameName)
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
         QJsonArray results = doc.array();
 
-        QString searchName = QString::fromStdString(gameName).toLower();
+        QString searchName = QString::fromStdString(gameName).toLower(); // searches by name
+        // gets the SteamAppId to the exact match
         for (const QJsonValue &result : results) {
             QJsonObject game = result.toObject();
             QString gameName = game["name"].toString();
@@ -95,7 +102,7 @@ GameMetadata SteamFetcher::fetchGameData(const std::string &gameName)
             QString appIdString = results[0].toObject()["appid"].toString();
             int appId = appIdString.toInt();
             reply->deleteLater();
-            return fetchBySteamId(appId);
+            return fetchBySteamId(appId); // fetches by steamAppId
         }
     }
 
