@@ -1,0 +1,47 @@
+name: Windows Release Build
+
+on:
+  push:
+    tags:
+      - "v*.*.*"   # Example: v0.1.0
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.6.0'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: 'qt5compat'
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: |
+        cmake --build build --config Release
+
+    - name: Deploy Qt dependencies
+      run: |
+        cd build
+        windeployqt GameLauncher.exe
+
+    - name: Create ZIP
+      run: |
+        mkdir release
+        xcopy build\* release\ /E /I
+        powershell Compress-Archive release GameLauncher-Windows.zip
+
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: GameLauncher-Windows.zip
