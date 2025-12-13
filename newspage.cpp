@@ -30,6 +30,10 @@ NewsPage::NewsPage(NewsFetcher *mainNewsFetch, QWidget *parent)
     }
 }
 
+void NewsPage::resizeNews(int width, int height) {
+
+}
+
 void NewsPage::setupNewsDisplay() {
     scrollArea = ui->scrollArea;
     scrollArea->setWidgetResizable(true);
@@ -47,11 +51,13 @@ void NewsPage::setupNewsDisplay() {
 void NewsPage::displayNews() {
     auto allNewsItems = newsFetcher->getAllNewsItems();
     for (const auto &item : allNewsItems) {
-        addNewsCard(item.thumbnailUrl, item.title, item.contents, item.source, item.url);
+        if (item.contents.length() > 85) {
+            addNewsCard(item.thumbnailUrl, item.title, (item.contents.left(82) + "..."), item.source, item.url);
+        } else {
+            addNewsCard(item.thumbnailUrl, item.title, item.contents, item.source, item.url);
+        }
     }
 }
-
-
 
 void NewsPage::addNewsCard(const QString &thumbnailUrl, const QString &title, const QString &description, const QString &source, const QString &articleUrl) {
     QWidget *card = createNewsCard(thumbnailUrl, title, description, source, articleUrl);

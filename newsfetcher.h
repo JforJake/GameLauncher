@@ -12,6 +12,7 @@ struct NewsItem {
     QString source;
     QString url;
     int timestamp;
+    long long steamAppId;
 };
 
 class NewsFetcher: public QObject
@@ -28,7 +29,6 @@ public:
     QString getTopArticleThumbnail();
     QList<NewsItem> getAllNewsItems();
     void fetchAllNews();
-
 
 private:
     void loadGameNames();

@@ -49,8 +49,6 @@ QList<NewsItem> NewsFetcher::getAllNewsItems() {
     return allNewsItems;
 }
 
-
-
 // fetching news functions
 void NewsFetcher::fetchAllNews() {
     fetchSteamNews(gameAppIds);
@@ -67,7 +65,7 @@ void NewsFetcher::fetchSteamNews(QStringList AppIds) {
         QUrlQuery query;
         query.addQueryItem("appid", appId);
         query.addQueryItem("count", "2");
-        query.addQueryItem("maxlength", "85");
+        query.addQueryItem("maxlength", "300");
         url.setQuery(query);
 
         QNetworkRequest request(url);
@@ -130,10 +128,6 @@ void NewsFetcher::onNewsReceived(QNetworkReply *reply) {
             if (contents.isNull()) contents = "";
             contents.replace(QRegularExpression("<[^>]*>"), "");
 
-            if (contents.length() > 200) {
-                contents = contents.left(197) + "...";
-            }
-
             QString thumbnailUrl = QString("https://cdn.cloudflare.steamstatic.com/steam/apps/%1/header.jpg").arg(appId);
 
             // Store news item with timestamp
@@ -144,6 +138,7 @@ void NewsFetcher::onNewsReceived(QNetworkReply *reply) {
             newsItem.source = "Steam";
             newsItem.url = url;
             newsItem.timestamp = timestamp;
+            newsItem.steamAppId = appId.toLongLong();
 
             allNewsItems.append(newsItem);
         }

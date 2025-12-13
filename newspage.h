@@ -5,7 +5,6 @@
 #include <qboxlayout>
 #include <qnetworkaccessmanager>
 #include <qscrollarea>
-#include "gamelibrary.h"
 #include "newsfetcher.h"
 
 namespace Ui {
@@ -42,6 +41,7 @@ public:
                     const QString &description,
                     const QString &source,
                     const QString &articleUrl);
+    void resizeNews(int width, int height);
     ~NewsPage();
 
 private:

@@ -134,5 +134,26 @@ QStringList GameLibrary::returnSteamAppIds() {
     return gameSteamAppIds;
 };
 
+bool GameLibrary::isFavorited(int id) {
+    SQLite::Statement query(db, "SELECT favorited FROM games WHERE id = ?");
+    query.bind(1, id);
+    if (query.executeStep())
+        return query.getColumn(0).getInt() == 1;
+    return false;
+}
 
+QString GameLibrary::getImagePathForSteamApp(qulonglong appId)
+{
+    SQLite::Statement query(
+        db,
+        "SELECT image_path FROM games WHERE steam_appid = ?"
+        );
+    query.bind(1, static_cast<long long>(appId));
 
+    if (query.executeStep()) {
+        return QString::fromStdString(
+            query.getColumn(0).getString()
+            );
+    }
+    return "";
+}

@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "wizard.h"
 #include <QScreen>
 #include <QGuiApplication>
 #include <QNetworkAccessManager>
@@ -8,8 +9,8 @@
 #include <QGridLayout>
 #include <QTimer>
 #include <SQLiteCpp/SQLiteCpp.h>
-#include <iostream>
 #include <fstream>
+#include <QPainterPath>
 
 using namespace std;
 
@@ -21,7 +22,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     sw = new Settings(this);
     sw->hide();
-
 
     newsFetcher = new NewsFetcher(this);
 
@@ -73,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
         sw->currScreen = QGuiApplication::primaryScreen();
         sw->currScreenIndex = 0;
     }
+    firstLoad = true;
     sw->setCurrIndex();
     sw->applySettings();
 
@@ -94,6 +95,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(newsFetcher, &NewsFetcher::newsReady, this, &MainWindow::setNewsSection);
     newsFetcher->fetchAllNews();
 
+
     loadGameLibrary(libgrid);
     loadFavLibrary(favgrid);
 
@@ -110,6 +112,29 @@ MainWindow::MainWindow(QWidget *parent)
     ui->MinimizeButton->setIcon(QIcon(":/res/res/MinimizeIcon.png"));
     ui->ExitButton->setIcon(QIcon(":/res/res/XIcon.png"));
     ui->RemoveGameButton->setIcon(QIcon(":/res/res/XIcon.png"));
+
+    ui->NewsText->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->NewsText->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->LibraryScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->FavoritesScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->GameNewsLogo->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->GameNewsLogo->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    ui->GameNewsLogo->setFrameShape(QFrame::NoFrame);
+    ui->GameNewsLogo->setLineWidth(0);
+    ui->GameNewsLogo->setMidLineWidth(0);
+    ui->CurrentGameLogo->setFrameShape(QFrame::NoFrame);
+    ui->CurrentGameLogo->setLineWidth(0);
+    ui->CurrentGameLogo->setMidLineWidth(0);
+
+    ui->GameNewsLogo->setStyleSheet(
+        "QGraphicsView { background: transparent; }"
+        "QGraphicsView::viewport { background: transparent; }"
+    );
+    ui->CurrentGameLogo->setStyleSheet(
+        "QGraphicsView { background: transparent; }"
+        "QGraphicsView::viewport { background: transparent; }"
+    );
 
     connect(ui->MinimizeButton, &QPushButton::clicked, this, &MainWindow::onMinimizeButtonClicked);
     connect(ui->SettingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsButtonClicked);
@@ -139,7 +164,6 @@ void MainWindow::onGameButtonClicked()
         appId = obj->property("appId").toString();
         filePath = obj->property("filePath").toString();
         desc = obj->property("desc").toString();
-        favorited = obj->property("favorited").toBool();
 
         QString imagePath = obj->property("imagePath").toString();
         QPixmap pixmap(imagePath);
@@ -151,14 +175,24 @@ void MainWindow::onGameButtonClicked()
             ui->CurrentGameLogo->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
         }
 
+        if (sw->windowWidth == 360 && desc.length() > 70) {
+            desc = desc.left(67) + "...";
+        } else if (sw->windowWidth == 480 && desc.length() > 120) {
+            desc = desc.left(117) + "...";
+        } else if (sw->windowWidth == 600 && desc.length() > 170) {
+            desc = desc.left(167) + "...";
+        } else if (sw->windowWidth == 720 && desc.length() > 220) {
+            desc = desc.left(217) + "...";
+        }
         ui->gameName->setText(gameName);
         ui->gameDesc->setText(desc);
 
-        if (favorited) {
-            ui->FavGameButton->setIcon(QIcon(":/res/res/Favorited.png"));
-        } else {
-            ui->FavGameButton->setIcon(QIcon(":/res/res/NotFavorited.png"));
-        }
+        favorited = gameLibrary->isFavorited(gameId.toInt());
+
+        ui->FavGameButton->setIcon(QIcon(
+            favorited ? ":/res/res/Favorited.png"
+                      : ":/res/res/NotFavorited.png"
+            ));
     }
 }
 
@@ -208,6 +242,7 @@ void MainWindow::returnToMainUI() {
     clearGridLayout(favgrid);
     loadGameLibrary(libgrid);
     loadFavLibrary(favgrid);
+    setNewsSection();
 }
 
 void MainWindow::onRemoveButtonClicked() {
@@ -328,8 +363,59 @@ void MainWindow::loadFavLibrary(QGridLayout* grid)
 }
 
 void MainWindow::setNewsSection() {
-    ui->NewsLabel->setText(newsFetcher->getTopArticleName());
-    ui->NewsText->setText(newsFetcher->getTopArticleText());
+    QString newsLabel = newsFetcher->getTopArticleName();
+    if (sw->windowWidth == 360 && newsLabel.length() > 13) {
+        ui->NewsLabel->setText(newsLabel.left(10) + "...");
+    } else if (sw->windowWidth == 480 && newsLabel.length() > 30) {
+        ui->NewsLabel->setText(newsLabel.left(27) + "...");
+    } else if (sw->windowWidth == 600 && newsLabel.length() > 47) {
+        ui->NewsLabel->setText(newsLabel.left(44) + "...");
+    } else if (sw->windowWidth == 720 && newsLabel.length() > 64) {
+        ui->NewsLabel->setText(newsLabel.left(61) + "...");
+    } else {
+        ui->NewsLabel->setText(newsLabel);
+    }
+
+    QString newsText = newsFetcher->getTopArticleText();
+    if (sw->windowWidth == 360 && newsText.length() > 150) {
+        ui->NewsText->setText(newsText.left(147) + "...");
+    } else if (sw->windowWidth == 480 && newsText.length() > 200) {
+        ui->NewsText->setText(newsText.left(197) + "...");
+    } else if (sw->windowWidth == 600 && newsText.length() > 240) {
+        ui->NewsText->setText(newsText.left(237) + "...");
+    } else if (sw->windowWidth == 720 && newsText.length() > 280) {
+        ui->NewsText->setText(newsText.left(277) + "...");
+    } else {
+        ui->NewsText->setText(newsText);
+    }
+
+    auto items = newsFetcher->getAllNewsItems();
+    if (items.isEmpty())
+        return;
+
+    long long steamAppId = items.first().steamAppId;
+    QString imagePath = gameLibrary->getImagePathForSteamApp(steamAppId);
+
+    if (imagePath.isEmpty())
+        return;
+
+    QPixmap pixmap(imagePath);
+    if (pixmap.isNull())
+        return;
+
+    QSize targetSize = ui->GameNewsLogo->viewport()->size();
+
+    QPixmap scaled = pixmap.scaled(
+        targetSize,
+        Qt::KeepAspectRatioByExpanding,
+        Qt::SmoothTransformation
+        );
+
+    auto *scene = new QGraphicsScene(ui->GameNewsLogo);
+    scene->addPixmap(scaled);
+    scene->setSceneRect(scaled.rect());
+    ui->GameNewsLogo->setScene(scene);
+    roundLeftCorners(ui->GameNewsLogo, 12);
 }
 
 void MainWindow::setGlobalStyle() {
@@ -341,10 +427,40 @@ void MainWindow::setGlobalStyle() {
             margin: 2px;
             border-radius: 6px;
         }
+
+        QTabBar::tab:selected {
+            background: palette(Highlight);
+            color: white;
+            font-weight: bold;
+        }
+
+        QTabBar::tab:hover {
+            background: palette(Midlight);
+            color: white
+        }
     )";
 
     qApp->setStyleSheet(qApp->styleSheet() + tabStyle);
 }
+
+void MainWindow::roundLeftCorners(QGraphicsView *view, int radius)
+{
+    QWidget *vp = view->viewport();
+    QSize s = vp->size();
+
+    QPainterPath path;
+    path.moveTo(radius, 0);
+    path.lineTo(s.width(), 0);
+    path.lineTo(s.width(), s.height());
+    path.lineTo(radius, s.height());
+    path.quadTo(0, s.height(), 0, s.height() - radius);
+    path.lineTo(0, radius);
+    path.quadTo(0, 0, radius, 0);
+
+    QRegion mask(path.toFillPolygon().toPolygon());
+    vp->setMask(mask);
+}
+
 
 MainWindow::~MainWindow()
 {

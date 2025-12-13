@@ -9,7 +9,6 @@
 #include <QCoreApplication>
 #include <fstream>
 #include <QDir>
-#include <iostream>
 
 Settings::Settings(QWidget *parent)
     : QWidget(parent)
@@ -90,6 +89,24 @@ void Settings::applySettings() {
     currWidthIndex = ui->ProgramWidthBox->currentData().toInt();
     currStartupIndex = ui->StartupBox->currentData().toInt();
 
+    // Changes program width
+    switch(currWidthIndex) {
+    case 0:
+        windowWidth = 360;
+        break;
+    case 1:
+        windowWidth = 480;
+        break;
+    case 2:
+        windowWidth = 600;
+        break;
+    case 3:
+        windowWidth = 720;
+        break;
+    }
+    this->resize(windowWidth, windowHeight);
+    mw->resize(windowWidth, windowHeight);
+
     // Changes screen side and which screen
     moveApplication(currScreenIndex, currSide);
 
@@ -112,24 +129,6 @@ void Settings::applySettings() {
         currColorScheme = 1;
     }
     mw->setGlobalStyle();
-
-    // Changes program width
-    switch(currWidthIndex) {
-        case 0:
-            windowWidth = 360;
-            break;
-        case 1:
-            windowWidth = 480;
-            break;
-        case 2:
-            windowWidth = 600;
-            break;
-        case 3:
-            windowWidth = 720;
-            break;
-    }
-    this->resize(windowWidth, windowHeight);
-    mw->resize(windowWidth, windowHeight);
 
     // Changes startup setting
     if (currStartupIndex == 1) {
@@ -165,16 +164,21 @@ void Settings::moveApplication(int screenIndex, int side) {
     this->resize(windowWidth, windowHeight);
     mw->resize(windowWidth, windowHeight);
 
-    m_anim->stop();
-    m_anim->setStartValue(QPoint(mw->pos()));
-
-    if (side == 0) {
-        m_anim->setEndValue(QPoint(geometry.x(), geometry.y()));
+    if (mw->firstLoad) {
+        if (side == 0) mw->move(QPoint(geometry.x(), geometry.y()));
+        else mw->move(QPoint(geometry.x() + (screenWidth - windowWidth), geometry.y()));
     } else {
-        m_anim->setEndValue(QPoint(geometry.x() + (screenWidth - windowWidth), geometry.y()));
-    }
+        m_anim->stop();
+        m_anim->setStartValue(QPoint(mw->pos()));
 
-    m_anim->start();
+        if (side == 0) {
+            m_anim->setEndValue(QPoint(geometry.x(), geometry.y()));
+        } else {
+            m_anim->setEndValue(QPoint(geometry.x() + (screenWidth - windowWidth), geometry.y()));
+        }
+
+        m_anim->start();
+    }
     currSide = side;
 }
 
@@ -196,11 +200,11 @@ void Settings::setColorSchemes() {
     dark.setColor(QPalette::Shadow,   QColor(75, 75, 75));
     dark.setColor(QPalette::Dark,     QColor(75, 75, 75));
     dark.setColor(QPalette::Mid,      QColor(75, 75, 75));
-    dark.setColor(QPalette::Midlight, QColor(75, 75, 75));
+    dark.setColor(QPalette::Midlight, QColor(85, 0, 255));
     dark.setColor(QPalette::Light,    QColor(75, 75, 75));
 
     // Highlight (optional)
-    dark.setColor(QPalette::Highlight, QColor(31, 155, 93));
+    dark.setColor(QPalette::Highlight, QColor(85, 0, 255));
 
     // Light Mode
     // Main window + base background
@@ -210,7 +214,7 @@ void Settings::setColorSchemes() {
     // Text colors
     light.setColor(QPalette::WindowText, QColor(0, 0, 0));
     light.setColor(QPalette::Text,        QColor(0, 0, 0));
-    light.setColor(QPalette::ButtonText,  QColor(0, 0, 0)); // white on teal
+    light.setColor(QPalette::ButtonText,  QColor(0, 0, 0));
 
     // Buttons
     light.setColor(QPalette::Button, QColor(0, 156, 148)); // teal
@@ -219,11 +223,11 @@ void Settings::setColorSchemes() {
     light.setColor(QPalette::Shadow,   QColor(160, 160, 160));
     light.setColor(QPalette::Dark,     QColor(160, 160, 160));
     light.setColor(QPalette::Mid,      QColor(192, 192, 192));
-    light.setColor(QPalette::Midlight, QColor(215, 215, 215));
+    light.setColor(QPalette::Midlight, QColor(85, 0, 255));
     light.setColor(QPalette::Light,    QColor(255, 255, 255));
 
     // Highlight (same)
-    light.setColor(QPalette::Highlight, QColor(0, 156, 148));
+    light.setColor(QPalette::Highlight, QColor(85, 0, 255));
 }
 
 void Settings::enableStartup() {
@@ -266,7 +270,6 @@ void Settings::disableStartup() {
         RegCloseKey(hKey);
     }
 }
-
 
 Settings::~Settings()
 {

@@ -6,10 +6,10 @@
 #include <QPoint>
 #include <QNetworkAccessManager>
 #include <QGridLayout>
+#include <QGraphicsView>
 #include "settings.h"
 #include "newspage.h"
 #include "gamelibrary.h"
-#include "wizard.h"
 #include "newsfetcher.h"
 
 QT_BEGIN_NAMESPACE
@@ -27,7 +27,7 @@ public:
     ~MainWindow();
     void returnToMainUI();
     void setGlobalStyle();
-
+    bool firstLoad;
 
 protected:
     void onExitButtonClicked();
@@ -58,7 +58,9 @@ private:
     void loadGameLibrary(QGridLayout* grid);
     void loadFavLibrary(QGridLayout* grid);
     void setNewsSection();
+    void roundLeftCorners(QGraphicsView *view, int radius);
     QGridLayout* libgrid; // grid to display all games
     QGridLayout* favgrid; // grid to display games
 };
+
 #endif

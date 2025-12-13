@@ -16,26 +16,32 @@ Wizard::Wizard(GameLibrary *gamelibrary, QWidget *parent)
     ui->setupUi(this);
 
     // temporary till I figure out how to add the colors
-    setStyleSheet(
-        "QWizard, QWizardPage, QWidget {"
-        "    background-color: #2b2b2b;"
-        "    color: #ffffff;"
-        "}"
-        "QLabel {"
-        "    color: #ffffff;"
-        "    background-color: transparent;"
-        "}"
-        "QPushButton {"
-        "    background-color: #3c3c3c;"
-        "    color: #ffffff;"
-        "    border: 1px solid #555555;"
-        "    padding: 5px;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #4a4a4a;"
-        "}"
-        );
+    QString styleSheet = R"(
+        QWizard, QWizardPage, QWidget {
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+        QLabel {
+            color: #ffffff;
+            background-color: transparent;
+        }
+        QPushButton {
+            background-color: #3c3c3c;
+            color: #ffffff;
+            border: 1px solid #555555;
+            padding: 5px;
+        }
+        QPushButton:hover {
+            background-color: ;
+        }
 
+        QPushButton:hover {
+            background: palette(Midlight);
+        }
+
+    )";
+
+    setStyleSheet(styleSheet);
 }
 
 Wizard::~Wizard()
