@@ -53,13 +53,13 @@
       <property name="minimumSize">
        <size>
         <width>300</width>
-        <height>50</height>
+        <height>75</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>660</width>
-        <height>100</height>
+        <height>75</height>
        </size>
       </property>
       <property name="styleSheet">
@@ -175,8 +175,8 @@ QPushButton:hover {
         <widget class="QPushButton" name="ExitButton">
          <property name="minimumSize">
           <size>
-           <width>64</width>
-           <height>64</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
@@ -399,7 +399,7 @@ QPushButton:hover {
              <x>0</x>
              <y>0</y>
              <width>414</width>
-             <height>493</height>
+             <height>506</height>
             </rect>
            </property>
           </widget>
@@ -443,7 +443,7 @@ QPushButton:hover {
              <x>0</x>
              <y>0</y>
              <width>414</width>
-             <height>493</height>
+             <height>506</height>
             </rect>
            </property>
           </widget>
