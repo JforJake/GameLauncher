@@ -4,7 +4,6 @@
 #include <QNetworkAccessManager>
 #include "gamelibrary.h"
 
-
 struct NewsItem {
     QString thumbnailUrl;
     QString title;

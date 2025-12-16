@@ -54,6 +54,16 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         steamfetcher.h steamfetcher.cpp
         resources.qrc
         newsfetcher.h newsfetcher.cpp
+        wizardintro.h wizardintro.cpp wizardintro.ui
+        wizardsteam.h wizardsteam.cpp wizardsteam.ui
+        wizardmanual.h wizardmanual.cpp wizardmanual.ui
+        wizardconclusion.h wizardconclusion.cpp wizardconclusion.ui
+        wizardepic.h wizardepic.cpp wizardepic.ui
+        epicscanner.h epicscanner.cpp
+
+
+
+
 
 
 

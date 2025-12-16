@@ -272,11 +272,10 @@ void MainWindow::onRemoveButtonClicked() {
 // Favorites a game and adds it to the Fav tab
 void MainWindow::onFavButtonClicked() {
     gameLibrary->toggleFavorite(gameId.toInt());
-    if (favorited) {
-        ui->FavGameButton->setIcon(QIcon(":/res/res/NotFavorited.png"));
-    } else {
-        ui->FavGameButton->setIcon(QIcon(":/res/res/Favorited.png"));
-    }
+    ui->FavGameButton->setIcon(QIcon(
+        favorited ? ":/res/res/Favorited.png"
+                  : ":/res/res/NotFavorited.png"
+        ));
     loadFavLibrary(favgrid);
 }
 

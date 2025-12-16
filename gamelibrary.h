@@ -23,7 +23,10 @@ class GameLibrary
 {
 public:
     GameLibrary(const std::string& dbPath);
-    void addGame(const std::string& name, const std::string& directory);
+    void addGame(const std::string& name,
+                 const std::string& directory,
+                 const std::string& description,
+                 const std::string& imagePath);
     void addSteamGame(long long appId, const std::string& name, const std::string& directory);
     std::vector<Game> getAllGames();
     std::vector<Game> getFavoriteGames();

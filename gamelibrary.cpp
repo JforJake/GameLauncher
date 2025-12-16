@@ -2,6 +2,7 @@
 #include <string>
 #include <windows.h>
 #include <QProcess>
+#include <QFileInfo>
 
 // Class to hold the game database utility
 // Creates, adds, returns, and deletes from the table
@@ -29,16 +30,25 @@ void GameLibrary::createTables()
 }
 
 // Adds a game via the manual import method
-void GameLibrary::addGame(const std::string& name, const std::string& directory) {
-    GameMetadata metadata = steamFetcher.fetchGameData(name);
+void GameLibrary::addGame(const std::string& name,
+                          const std::string& directory,
+                          const std::string& description,
+                          const std::string& imagePath)
+{
+    SQLite::Statement query(
+        db,
+        "INSERT OR REPLACE INTO games "
+        "(name, directory, description, image_path) "
+        "VALUES (?, ?, ?, ?)"
+        );
 
-    SQLite::Statement query(db, "INSERT OR REPLACE INTO games (name, directory, description, image_path) VALUES (?, ?, ?, ?)");
     query.bind(1, name);
     query.bind(2, directory);
-    query.bind(3, metadata.description);
-    query.bind(4, metadata.imagePath);
+    query.bind(3, description);
+    query.bind(4, imagePath);
     query.exec();
 }
+
 
 // Adds the game via the automatic steam import method
 void GameLibrary::addSteamGame(long long appId, const std::string& name, const std::string& directory) {
@@ -90,10 +100,28 @@ bool GameLibrary::launchGameById(const std::string& appId) {
 }
 
 // launches a manually imported game via its path
-bool GameLibrary::launchGameByPath(const std::string& filePath) {
-    if (filePath.empty()) return false;
-    return QProcess::startDetached(QString::fromStdString(filePath));
+bool GameLibrary::launchGameByPath(const std::string& filePath)
+{
+    if (filePath.empty())
+        return false;
+
+    QString exePath = QString::fromStdString(filePath);
+    QFileInfo info(exePath);
+
+    if (!info.exists() || !info.isFile())
+        return false;
+
+    // Use the executable's directory as working dir
+    QString workingDir = info.absolutePath();
+
+    return QProcess::startDetached(
+        exePath,
+        QStringList(),
+        workingDir
+        );
 }
+
+
 
 // Toggles the favorited from 1 to 0: 1 is favorited, 0 is unfavorited
 void GameLibrary::toggleFavorite(const int id) {
