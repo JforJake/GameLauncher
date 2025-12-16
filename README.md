@@ -1,5 +1,5 @@
 To install this program, if you are on the main GitHub page and see files filled with code, click on releases on the side of the screen.
-If you are one windows, download the zip file, otherwise download the tar file.
+Download the SpatialLauncher-Windows.zip file
 Extract the downloaded file to any directory.
 Use the .exe file to run the program.
 
